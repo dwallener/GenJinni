@@ -1,9 +1,13 @@
 import flet
 from flet import AppBar, ElevatedButton, Page, Text, View, colors
+from flet import Image, ImageFit, ImageRepeat
 from flet import Column, Row
-from flet import ElevatedButton, FilePicker, FilePickerResultEvent, FilePickerUploadEvent, FilePickerUploadFile
+from flet import ElevatedButton
+from flet import FilePicker
+from flet import FilePickerResultEvent, FilePickerUploadEvent, FilePickerUploadFile
 from flet import Page, ProgressRing, Ref, Text, icons
 
+import os
 
 # let's try separating the various stages into separate routes...
 # bring in pieces from the image-picker and file-picker tests
@@ -101,6 +105,7 @@ def main(page: Page):
                     ],
                 )
             )
+
         if page.route == "/character":
             page.views.append(
                 View(
@@ -148,11 +153,59 @@ def main(page: Page):
                             disabled=True,
                         ),
                         ElevatedButton(
-                            "Go to arena settings", on_click=open_arena_settings
+                            "Review the settings", on_click=open_review_settings
                         ),
                     ],
                 )
             )
+        if page.route == "/review":
+            # find the uploaded files
+            review_path = "path"
+            dir_list = os.listdir("uploads/")
+            print("Uploaded images: ")
+            print(dir_list)
+
+            # display the uploaded files
+            # later we can break this into subfolders for each section to keep things clean
+            images = Row(expand=1, wrap=False, scroll="always")
+
+            page.add(images)
+            page.update()
+
+            for i in range(0, len(dir_list)):
+                images.controls.append(
+                    Image(
+                        src="/Users/damir00/Sandbox/GenJinni/uploads/" + dir_list[i],
+                        width=200,
+                        height=200,
+                        fit=ImageFit.NONE,
+                        repeat=ImageRepeat.NO_REPEAT,
+                        #border_radius=border_radius.all(10),
+                    )
+                )
+            page.update()
+
+            page.views.append(
+                View(
+                    "/review",
+                    [
+                        AppBar(title=Text("Collision"), bgcolor=colors.SURFACE_VARIANT),
+                        Text("Review Settings!", style="bodyMedium"),
+                        ElevatedButton(
+                            "Verify GenAI Seeding",
+                            ref=upload_button,
+                            icon=icons.UPLOAD,
+                            on_click=upload_files,
+                            disabled=False,
+                        ),
+                        images,
+                        ElevatedButton(
+                            "Accept Review", on_click=open_review_settings
+                        ),
+                    ],
+                )
+            )
+
         if page.route == "/settings" or page.route == "/settings/mail": 
             page.views.append(
                 View(
@@ -200,6 +253,9 @@ def main(page: Page):
 
     def open_collision_settings(e):
         page.go("/collision")
+
+    def open_review_settings(e):
+        page.go("/review")
 
     def open_settings(e):
         page.go("/settings")
