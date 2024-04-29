@@ -2,6 +2,7 @@ import os
 import shutil
 from tkinter import Tk, filedialog, Label, Button, Frame, DISABLED, NORMAL, BOTH, Text, Scrollbar, END
 from tkinter.ttk import Separator
+from tkinter.font import Font
 from PIL import Image, ImageTk
 import sys
 import subprocess
@@ -29,11 +30,14 @@ def upload_image(category):
         os.makedirs(category_dir)
 
     # Ask the user to select images
-    file_paths = filedialog.askopenfilenames(
-        title=f"Select {category} images", 
-        filetypes=[("PNG Files", "*.png"), ("JPEG Files", "*.jpg;*.jpeg")]
-    )
+    #file_paths = filedialog.askopenfilenames(
+    #    title=f"Select {category} images", 
+    #    filetypes=[("PNG Files", "*.png"), ("JPEG Files", "*.jpg;*.jpeg")]
+    #)
 
+    file_paths = filedialog.askopenfilenames(
+        title=f"Select {category} images")
+    
     # Clear any previous images in the row frame
     for widget in category_frames[category]["images"].winfo_children():
         widget.destroy()
@@ -104,7 +108,9 @@ def create_gui():
     console_frame = Frame(root)
     console_frame.grid(row=len(category_frames)*2+1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-    console_text = Text(console_frame, height=15, wrap="word")
+    console_font = Font(family="Courier", size=10)
+
+    console_text = Text(console_frame, height=30, wrap="word", font=console_font)
     console_text.pack(side="left", fill=BOTH, expand=True)
 
     scrollbar = Scrollbar(console_frame, command=console_text.yview)
