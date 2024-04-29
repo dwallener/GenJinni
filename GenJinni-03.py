@@ -117,15 +117,42 @@ def create_gui():
     # Start the GUI event loop
     root.mainloop()
 
+import threading
+
 def review_setup():
+    """Runs the external Python script 'build-the-game.py' and pipes its output into the console text widget."""
+    def run_script():
+        print("Running the external script 'build-the-game.py'...")
+
+        # Run the script and capture its output
+        process = subprocess.Popen(
+            ["python3", "build-the-game.py"], 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True
+        )
+
+        # Stream the output into the console text widget
+        for line in process.stdout:
+            sys.stdout.write(line)
+
+        # Check for errors
+        for line in process.stderr:
+            sys.stdout.write(f"ERROR: {line}")
+
+    # Run the external script in a new thread
+    threading.Thread(target=run_script).start()
+
+
+def review_setup_2():
     """Runs the external Python script 'build-the-game.py' and pipes its output into the console text widget."""
     print("Running the external script 'build-the-game.py'...")
     
     # Run the script and capture its output
     process = subprocess.Popen(
-        ["python3", "build-the-game.py"], 
-        stdout=subprocess.PIPE, 
-        stderr=subprocess.PIPE, 
+        ["python3", "build-the-game.py"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True
     )
 
