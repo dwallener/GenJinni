@@ -74,8 +74,14 @@ def upload_image(category):
 
 def decimate_image(file_path):
     """Stub function for decimating an image."""
-    print(f"Decimating the image at {file_path}...")
-    sys.stdout.write(f"Decimating the image at {file_path}...")
+    from PIL import Image
+
+    # Open the image to get its dimensions
+    with Image.open(file_path) as img:
+        width, height = img.size
+
+    # Write the information to stdout
+    sys.stdout.write(f"Decimating the image at {file_path} (dimensions: {width}x{height})...\n")
 
 
 def create_gui():
@@ -134,7 +140,7 @@ def create_gui():
     console_font = Font(family="Courier", size=10)  # Adjust font family and size as needed
 
     console_text = Text(console_frame, height=15, wrap="word", font=console_font)
-    console_text.pack(side="left", fill BOTH, expand=True)
+    console_text.pack(side="left", fill=BOTH, expand=True)
 
     scrollbar = Scrollbar(console_frame, command=console_text.yview)
     scrollbar.pack(side="right", fill="y")
