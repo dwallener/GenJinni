@@ -2,6 +2,7 @@ import os
 import shutil
 from tkinter import Tk, filedialog, Label, Button, Frame, DISABLED, NORMAL, BOTH, Text, Scrollbar, END, BooleanVar, Radiobutton
 from tkinter.ttk import Separator
+from tkinter.font import Font
 from PIL import Image, ImageTk
 import sys
 import subprocess
@@ -31,16 +32,22 @@ def upload_image(category):
         os.makedirs(category_dir)
 
     # Ask the user to select images
-    file_paths = filedialog.askopenfilenames(
-        title=f"Select {category} images", 
-        filetypes=[("PNG Files", "*.png"), ("JPEG Files", "*.jpg;*.jpeg")]
-    )
+    #file_paths = filedialog.askopenfilenames(
+    #    title=f"Select {category} images", 
+    #    filetypes=[("PNG Files", "*.png"), ("JPEG Files", "*.jpg;*.jpeg")]
+    #)
 
+<<<<<<< HEAD
     # If Decimate is selected, only allow one image upload for Arena
     if category == "Arena" and decimate_video.get() and len(file_paths) > 1:
         print("Only one file can be uploaded for Arena with Decimate selected.")
         file_paths = file_paths[:1]
 
+=======
+    file_paths = filedialog.askopenfilenames(
+        title=f"Select {category} images")
+    
+>>>>>>> 497436880a3d92a1eb9a8a7acadf339b2d7ee528
     # Clear any previous images in the row frame
     for widget in category_frames[category]["images"].winfo_children():
         widget.destroy()
@@ -119,10 +126,16 @@ def create_gui():
     console_frame = Frame(root)
     console_frame.grid(row=len(category_frames)*2+1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
+<<<<<<< HEAD
     # Define a smaller font
     console_font = Font(family="Courier", size=10)  # Adjust font family and size as needed
 
     console_text = Text(console_frame, height=15, wrap="word", font=console_font)
+=======
+    console_font = Font(family="Courier", size=10)
+
+    console_text = Text(console_frame, height=30, wrap="word", font=console_font)
+>>>>>>> 497436880a3d92a1eb9a8a7acadf339b2d7ee528
     console_text.pack(side="left", fill=BOTH, expand=True)
 
     scrollbar = Scrollbar(console_frame, command=console_text.yview)
