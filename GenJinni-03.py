@@ -36,10 +36,14 @@ def upload_image(category):
         filetypes=[("PNG Files", "*.png"), ("JPEG Files", "*.jpg;*.jpeg")]
     )
 
-    # If Decimate is selected, only allow one image upload for Arena
-    if category == "Arena" and decimate_video.get() and len(file_paths) > 1:
-        print("Only one file can be uploaded for Arena with Decimate selected.")
-        file_paths = file_paths[:1]
+    # If Decimate is selected and it's the Arena category, run decimate_image
+    if category == "Arena" and decimate_video.get():
+        if len(file_paths) > 1:
+            print("Only one file can be uploaded for Arena with Decimate selected.")
+            file_paths = file_paths[:1]
+
+        # Stub out decimate_image
+        decimate_image(file_paths[0])
 
     # Clear any previous images in the row frame
     for widget in category_frames[category]["images"].winfo_children():
@@ -66,6 +70,13 @@ def upload_image(category):
     # Check if all categories have images, if so, enable the review button
     if all(os.listdir(os.path.join("uploaded_images", cat.lower())) for cat in category_frames):
         review_button.config(state=NORMAL)
+
+
+def decimate_image(file_path):
+    """Stub function for decimating an image."""
+    print(f"Decimating the image at {file_path}...")
+    sys.stdout.write(f"Decimating the image at {file_path}...")
+
 
 def create_gui():
     global root, review_button, category_frames, decimate_video
@@ -123,7 +134,7 @@ def create_gui():
     console_font = Font(family="Courier", size=10)  # Adjust font family and size as needed
 
     console_text = Text(console_frame, height=15, wrap="word", font=console_font)
-    console_text.pack(side="left", fill=BOTH, expand=True)
+    console_text.pack(side="left", fill BOTH, expand=True)
 
     scrollbar = Scrollbar(console_frame, command=console_text.yview)
     scrollbar.pack(side="right", fill="y")
