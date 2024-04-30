@@ -89,8 +89,8 @@ def decimate_image(file_path):
     sys.stdout.write("Opened image")
 
     # get the image dimensions
-    x,y = im.size
-    sys.stdout.write("Image size : WxH: ", x, " ", y)
+    x, y = im.size
+    sys.stdout.write(f"Image size : {x} x {y}")
     sys.stdout.write("Training images go to artwork/arena_training_images/")
 
     # assume square
@@ -108,7 +108,7 @@ def decimate_image(file_path):
         print(filename)
         crop_img.save(filename)
         sys.stdout.write(f"Saving frame {frame_name}")
-        
+
 
 def create_gui():
     global root, review_button, category_frames, decimate_video
