@@ -83,6 +83,32 @@ def decimate_image(file_path):
     # Write the information to stdout
     sys.stdout.write(f"Decimating the image at {file_path} (dimensions: {width}x{height})...\n")
 
+    # perform the actual decimation
+    # open the image
+    im = Image.open(file_path)
+    sys.stdout.write("Opened image")
+
+    # get the image dimensions
+    x,y = im.size
+    sys.stdout.write("Image size : WxH: ", x, " ", y)
+    sys.stdout.write("Training images go to artwork/arena_training_images/")
+
+    # assume square
+    # remember images are 0,0 in upper left and we're starting from the bottom
+
+    # start at bottom, go until height is same as width
+    for i in range(y-1, x-1, -1): 
+        print("Step: ", i-x)
+        # left, upper, right, lower
+        bbox = (0, i-x, 128, i)
+        print("BBox: ", bbox)
+        crop_img = im.crop(bbox)
+        frame_name = "racer-track-{04d}.png".format(i-128)
+        filename = "artwork/arena_training_images/racer-track-{:04d}.png".format(i-128)
+        print(filename)
+        crop_img.save(filename)
+        sys.stdout.write(f"Saving frame {frame_name}")
+        
 
 def create_gui():
     global root, review_button, category_frames, decimate_video
