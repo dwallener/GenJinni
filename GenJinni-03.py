@@ -103,7 +103,7 @@ def decimate_image(file_path):
         bbox = (0, i-x, 128, i)
         print("BBox: ", bbox)
         crop_img = im.crop(bbox)
-        frame_name = "racer-track-{04d}.png".format(i-128)
+        frame_name = "racer-track-{:04d}.png".format(i-128)
         filename = "artwork/arena_training_images/racer-track-{:04d}.png".format(i-128)
         print(filename)
         crop_img.save(filename)
