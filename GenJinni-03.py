@@ -1,10 +1,12 @@
 import os
 import shutil
-from tkinter import Tk, filedialog, Label, Button, Frame, DISABLED, NORMAL, BOTH, Text, Scrollbar, END
+from tkinter import Tk, filedialog, Label, Button, Frame, DISABLED, NORMAL, BOTH, Text, Scrollbar, END, BooleanVar, Radiobutton
 from tkinter.ttk import Separator
 from PIL import Image, ImageTk
 import sys
 import subprocess
+import threading
+from tkinter.font import Font
 
 class ConsoleOutput:
     """A class to redirect console output to a tkinter Text widget."""
@@ -34,6 +36,11 @@ def upload_image(category):
         filetypes=[("PNG Files", "*.png"), ("JPEG Files", "*.jpg;*.jpeg")]
     )
 
+    # If Decimate is selected, only allow one image upload for Arena
+    if category == "Arena" and decimate_video.get() and len(file_paths) > 1:
+        print("Only one file can be uploaded for Arena with Decimate selected.")
+        file_paths = file_paths[:1]
+
     # Clear any previous images in the row frame
     for widget in category_frames[category]["images"].winfo_children():
         widget.destroy()
@@ -61,7 +68,7 @@ def upload_image(category):
         review_button.config(state=NORMAL)
 
 def create_gui():
-    global root, review_button, category_frames
+    global root, review_button, category_frames, decimate_video
     # Set up the main window
     root = Tk()
     root.title("Image Uploader")
@@ -92,19 +99,30 @@ def create_gui():
         category_frames[category]["images"] = Frame(category_frame)
         category_frames[category]["images"].pack(padx=5, pady=5)
 
+        # If this is the Arena category, add a Decimate option
+        if category == "Arena":
+            decimate_video = BooleanVar()
+
+            # Radio button for Decimate
+            decimate_button = Radiobutton(category_frame, text="Decimate", variable=decimate_video, value=True)
+            decimate_button.pack(padx=5, pady=5)
+
         # Add a separator line between each category
         if idx < len(category_frames) - 1:
             Separator(root, orient="horizontal").grid(row=idx*2+1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     # Create a review button
-    review_button = Button(root, text="Setup is Reviewed and Accpeted", state=DISABLED, command=review_setup)
+    review_button = Button(root, text="Review the Setup", state=DISABLED, command=review_setup)
     review_button.grid(row=len(category_frames)*2, column=0, columnspan=2, padx=5, pady=10)
 
     # Create a text box for console output
     console_frame = Frame(root)
     console_frame.grid(row=len(category_frames)*2+1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-    console_text = Text(console_frame, height=15, wrap="word")
+    # Define a smaller font
+    console_font = Font(family="Courier", size=10)  # Adjust font family and size as needed
+
+    console_text = Text(console_frame, height=15, wrap="word", font=console_font)
     console_text.pack(side="left", fill=BOTH, expand=True)
 
     scrollbar = Scrollbar(console_frame, command=console_text.yview)
@@ -117,13 +135,12 @@ def create_gui():
     # Start the GUI event loop
     root.mainloop()
 
-import threading
-
 def review_setup():
     """Runs the external Python script 'build-the-game.py' and pipes its output into the console text widget."""
-    def run_script():
-        print("Running the external script 'build-the-game.py'...")
+    print("Running the external script 'build-the-game.py'...")
 
+    # Run the script in a new thread
+    def run_script():
         # Run the script and capture its output
         process = subprocess.Popen(
             ["python3", "build-the-game.py"], 
@@ -140,29 +157,7 @@ def review_setup():
         for line in process.stderr:
             sys.stdout.write(f"ERROR: {line}")
 
-    # Run the external script in a new thread
     threading.Thread(target=run_script).start()
-
-
-def review_setup_2():
-    """Runs the external Python script 'build-the-game.py' and pipes its output into the console text widget."""
-    print("Running the external script 'build-the-game.py'...")
-    
-    # Run the script and capture its output
-    process = subprocess.Popen(
-        ["python3", "build-the-game.py"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-
-    # Stream the output into the console text widget
-    for line in process.stdout:
-        sys.stdout.write(line)
-
-    # Check for errors
-    for line in process.stderr:
-        sys.stdout.write(f"ERROR: {line}")
 
 # Run the GUI
 if __name__ == "__main__":
