@@ -1,3 +1,10 @@
+#!/usr/bin/python3
+
+# Master todo list
+
+# TODO: add the arena training by calling pix2pix in the usual way
+# TODO: add the run game capability by leveraging the earlier compositing work on this
+
 import os
 import shutil
 from tkinter import Tk, filedialog, Label, Button, Frame, DISABLED, NORMAL, BOTH, Text, Scrollbar, END, BooleanVar, Radiobutton
