@@ -165,6 +165,10 @@ def create_gui():
     review_button = Button(root, text="Review the Setup", state=DISABLED, command=review_setup)
     review_button.grid(row=len(category_frames)*2, column=0, columnspan=2, padx=5, pady=10)
 
+    # Create a "Build Game" button
+    build_game_button = Button(root, text="Build Game", command=build_game)
+    build_game_button.grid(row=len(category_frames)*2+1, column=0, columnspan=2, padx=5, pady=10)
+
     # Create a text box for console output
     console_frame = Frame(root)
     console_frame.grid(row=len(category_frames)*2+1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
@@ -208,6 +212,12 @@ def review_setup():
             sys.stdout.write(f"ERROR: {line}")
 
     threading.Thread(target=run_script).start()
+
+
+def build_game():
+    """Stub function for building the game."""
+    sys.stdout.write("Building the game...\n")
+
 
 # Run the GUI
 if __name__ == "__main__":
