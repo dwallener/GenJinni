@@ -183,8 +183,10 @@ class PairedImageDataset(Dataset):
         self.image_dir = image_dir
         self.naked_dir = f'{image_dir}/naked/'
         self.overlay_dir = f'{image_dir}/overlay/'
-        self.images = sorted([f for f in os.listdir(self.naked_dir) if f.lower().endswith(('.png'))])
-        print(f'Found {len(self.images)} images...')        
+        self.naked_images = sorted([f for f in os.listdir(self.naked_dir) if f.lower().endswith(('.png'))])
+        self.overlay_images = sorted([f for f in os.listdir(self.naked_dir) if f.lower().endswith(('.png'))])
+        print(f'Found {len(self.naked_images)} naked images...')        
+        print(f'Found {len(self.overlay_images)} overlay images...')        
         self.transform = transform
         print(f"Sourcing images from {self.naked_dir}")
         print(f"Sourcing encoding from {self.overlay_dir}")
@@ -194,9 +196,9 @@ class PairedImageDataset(Dataset):
         return len(self.images) - 2
 
     def __getitem__(self, idx):
-        naked_img_path = os.path.join(self.naked_dir, self.images[idx])
-        target_img_path = os.path.join(self.naked_dir, self.images[idx + 1])
-        overlay_img_path = os.path.join(self.overlay_dir, self.images[idx])
+        naked_img_path = os.path.join(self.naked_dir, self.naked_images[idx])
+        target_img_path = os.path.join(self.naked_dir, self.naked_images[idx + 1])
+        overlay_img_path = os.path.join(self.overlay_dir, self.overlay_images[idx])
 
         # RGBA...?
         naked_image = Image.open(naked_img_path).convert('RGBA')
