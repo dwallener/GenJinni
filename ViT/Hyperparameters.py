@@ -2,7 +2,7 @@ class Hyperparameters:
     def __init__(self):
         # Hyperparameters and paths
         self.img_size = 128
-        self.patch_size = 4
+        self.patch_size = 8
         self.in_channels = 3
         self.emb_dim = 1024
         self.num_heads = 4
