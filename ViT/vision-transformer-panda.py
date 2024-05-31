@@ -196,37 +196,6 @@ class PairedImageDataset(Dataset):
 
         return source_image, target_image
 
-# the original one, for using separate dirs
-# the pattern is...
-# source = last image + overlay
-# target = next image
-
-class PairedImageDataset2(Dataset):
-    def __init__(self, source_dir, target_dir, transform=None):
-        self.source_dir = source_dir
-        self.target_dir = target_dir
-        self.source_images = sorted(os.listdir(source_dir))
-        self.target_images = sorted(os.listdir(target_dir))
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.source_images) - 1
-
-    def __getitem__(self, idx):
-        source_img_path = os.path.join(self.source_dir, self.source_images[idx])
-        target_img_path = os.path.join(self.target_dir, self.target_images[idx+1])
-
-        source_image = Image.open(source_img_path).convert('RGB')
-        target_image = Image.open(target_img_path).convert('RGB')
-
-        if self.transform:
-            source_image = self.transform(source_image)
-            target_image = self.transform(target_image)
-
-        target_image = target_image.view(-1)  # Flatten target image
-
-        return source_image, target_image
-
 
 from Hyperparameters import Hyperparameters
 hp = Hyperparameters()
@@ -256,7 +225,9 @@ transform = transforms.Compose([
 # Dataset and DataLoader
 print(f"Arrangine the dataset...")
 # we sort out the overlay, target, source frames inside the called function
+print(f'Construcing dataset...')
 dataset = PairedImageDataset(root_path, transform)
+print('Constructing dataloader...')
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Model
