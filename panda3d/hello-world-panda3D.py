@@ -130,6 +130,9 @@ class MyApp(ShowBase):
 
     # Define a procedure to move the camera.
     def spinCameraTask(self, task):
+        # want bigger deltas between frames
+        # let's stutter...
+        N = 10
         dt = globalClock.getDt() * 0.5
 
         # Update the camera angle based on the direction.
@@ -154,15 +157,16 @@ class MyApp(ShowBase):
         self.camera.setPos(Point3(x, y, z))
         self.camera.lookAt(0, 0, 0)
 
-        # Save the raw screenshot without the overlay
-        self.win.saveScreenshot(f"frame_caps/naked/frame-{self.frame_counter:05d}.png")
+        if self.frame_counter % N == 0:
+            # Save the raw screenshot without the overlay
+            self.win.saveScreenshot(f"frame_caps/naked/frame-{self.frame_counter:05d}.png")
 
-        if self.rotation_direction:
-            # Create and save the overlay PNG
-            self.create_overlay_png(self.rotation_direction)
-        else:
-            # Create and save an empty overlay PNG
-            self.create_empty_overlay_png()
+            if self.rotation_direction:
+                # Create and save the overlay PNG
+                self.create_overlay_png(self.rotation_direction)
+            else:
+                # Create and save an empty overlay PNG
+                self.create_empty_overlay_png()
 
         self.frame_counter += 1
 
