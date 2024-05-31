@@ -3,64 +3,19 @@
 from PIL import Image
 import numpy as np
 from scipy import fft
-
-# read jpg image
-img_file = "artwork/arena_training_images/racer-track-0040.png"
-img = Image.open(img_file).convert('L')
-
-# scale to 256x256
-img = img.resize((256,256))
-img.show()
-img.save("artwork/dct_test/racer-track-0040-grey.jpg")
-
-# convert to greyscale
-pass
-
-# convert to Yuv (unneeded for greyscale)
-pass
-
-# normalize to -127:127
-
-img_stepdown = np.array(img, dtype=np.float32)
-print(img_stepdown)
-img_stepdown = img_stepdown - 128.
-print(img_stepdown)
+import cv2  # Importing the OpenCV library
 
 # perform DCT on 8x8
-
 def block_dct(block):
     return fft.dct(fft.dct(block.T, norm='ortho').T, norm='ortho')
 
-# quantize to 4x4
 
+# quantize to 4x4
 def extract_4x4(dct_block):
     return dct_block[:4, :4]
 
-# reconstruct 256px with replication
-
-dct_image = np.zeros(shape=(256, 256))
-for i in range(0, 256, 8):
-    for j in range(0, 256, 8):
-        block = img_stepdown[i:i+8, j:j+8]
-        print("Block")
-        print(block)
-        dct_block = block_dct(block)
-        print("DCT Block")
-        print(dct_block)
-        sub_matrix = extract_4x4(dct_block)
-        for x in range(0, 8, 4):
-            for y in range(0, 8, 4):
-                dct_image[i+x:i+x+4, j+y:j+y+4] = sub_matrix
-                
-# save with .gjpg extension
-
-new_image = Image.fromarray(dct_image.clip(-128,127)+128).convert('L')
-new_filename = "artwork/dct_test/racer-track-0040-genPEG.jpg"
-new_image.save(new_filename)
-new_image.show()
 
 # do the reverse...pull a frame from the interpolation video and jpeg it
-
 def reverse_process_image(file_path):
     # Step 1: Read the modified image
     img = Image.open(file_path).convert('L')
@@ -94,8 +49,7 @@ def reverse_process_image(file_path):
 
     return reconstructed_filename
 
-import cv2  # Importing the OpenCV library
-
+# let's see how interpolation on the DCT stream looks...
 def extract_frame(video_path, frame_number):
     # Open the video file
     video = cv2.VideoCapture(video_path)
@@ -119,12 +73,73 @@ def extract_frame(video_path, frame_number):
     
     video.release()  # Release the video source
 
-# Usage example
-video_path = 'artwork/dct_test/racer-track-genPEG.mp4'
-frame_number = 150  # Specify the frame number you want to extract
-extract_frame(video_path, frame_number)
 
+# choose some frames to train with
+training_list = {10, 20, 30, 40, 50, 60}
+
+for img_num in training_list:
+    
+    # read jpg image
+    img_file = f"artwork/arena_training_images/racer-track-00{img_num}.png"
+    img = Image.open(img_file).convert('L')
+
+    # scale to 256x256
+    img = img.resize((256, 256))
+    img.show()
+    img.save(f"artwork/dct_test/racer-track-00{img_num}-grey.jpg")
+
+    # convert to greyscale
+    pass
+
+    # convert to Yuv (unneeded for greyscale)
+    pass
+
+    # normalize to -127:127
+    img_stepdown = np.array(img, dtype=np.float32)
+    print(img_stepdown)
+    img_stepdown = img_stepdown - 128.
+    print(img_stepdown)
+
+    # reconstruct 256px with replication
+    dct_image = np.zeros(shape=(256, 256))
+    for i in range(0, 256, 8):
+        for j in range(0, 256, 8):
+            block = img_stepdown[i:i+8, j:j+8]
+            print("Block")
+            print(block)
+            dct_block = block_dct(block)
+            print("DCT Block")
+            print(dct_block)
+            sub_matrix = extract_4x4(dct_block)
+            for x in range(0, 8, 4):
+                for y in range(0, 8, 4):
+                    dct_image[i+x:i+x+4, j+y:j+y+4] = sub_matrix
+
+    new_image = Image.fromarray(dct_image.clip(-128,127)+128).convert('L')
+    new_filename = f"artwork/dct_test/racer-track-00{img_num}-genPEG.jpg"
+    new_image.save(new_filename)
+    new_image.show()
+
+    # let's try something...reduce image size to DCT block size
+    dct_image_reduced = np.zeros(shape=(128, 128))
+    for i in range(0, 256, 8):
+        for j in range(0, 256, 8):
+            block = img_stepdown[i:i+8, j:j+8]
+            dct_block = block_dct(block)
+            sub_matrix = extract_4x4(dct_block)
+            dct_image_reduced[int(i/2):int(i/2)+4, int(j/2):int(j/2)+4] = sub_matrix
+
+    # save with .gjpg extension
+    new_image = Image.fromarray(dct_image_reduced.clip(-128,127)+128).convert('L')
+    new_filename = f"artwork/dct_test/racer-track-00{img_num}-genPEG-128px.jpg"
+    new_image.save(new_filename)
+    new_image.show()
+
+
+# Usage example
+video_path = 'artwork/dct_test/racer-track-genPEG-128px.mp4'
 frame_num = 3
 extract_frame(video_path, frame_num)
-extract_filename = f'extracted_frame_{frame_num}.jpg' 
+extract_filename = f'extracted_frame_{frame_num}.jpg'
 reverse_process_image(extract_filename)
+
