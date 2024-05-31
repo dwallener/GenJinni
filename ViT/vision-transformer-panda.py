@@ -224,11 +224,13 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
+training_dir = '/Users/damir00/Sandbox/GenJinni/panda3d/frame_caps'
+
 # Dataset and DataLoader
 print(f"Arrangine the dataset...")
 # we sort out the overlay, target, source frames inside the called function
 print(f'Construcing dataset...')
-dataset = PairedImageDataset(root_path, transform)
+dataset = PairedImageDataset(training_dir, transform)
 print('Constructing dataloader...')
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
@@ -263,7 +265,6 @@ scaler = GradScaler()
 
 # Dump training run deets in preamble
 config_pretty_print(root_path, num_parameters, num_heads, num_layers, batch_size, img_size, patch_size, max_warmup_epochs, max_epochs, initial_lr, main_lr)
-
 
 # Manage checkpoints
 
