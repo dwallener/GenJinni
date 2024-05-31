@@ -184,7 +184,7 @@ class PairedImageDataset(Dataset):
         self.naked_dir = f'{image_dir}/naked/'
         self.overlay_dir = f'{image_dir}/overlay/'
         self.naked_images = sorted([f for f in os.listdir(self.naked_dir) if f.lower().endswith(('.png'))])
-        self.overlay_images = sorted([f for f in os.listdir(self.naked_dir) if f.lower().endswith(('.png'))])
+        self.overlay_images = sorted([f for f in os.listdir(self.overlay_dir) if f.lower().endswith(('.png'))])
         print(f'Found {len(self.naked_images)} naked images...')        
         print(f'Found {len(self.overlay_images)} overlay images...')        
         self.transform = transform
