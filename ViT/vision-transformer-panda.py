@@ -193,6 +193,7 @@ class PairedImageDataset(Dataset):
             target_image = self.transform(target_image)
 
         target_image = target_image.view(-1)  # Flatten target image
+        print(f'Datset index: {idx}')
 
         return source_image, target_image
 
