@@ -193,7 +193,7 @@ class PairedImageDataset(Dataset):
 
     def __len__(self):
         # The length is one less than the number of images, as the last image has no subsequent image
-        return len(self.images) - 2
+        return len(self.naked_images) - 2
 
     def __getitem__(self, idx):
         naked_img_path = os.path.join(self.naked_dir, self.naked_images[idx])
