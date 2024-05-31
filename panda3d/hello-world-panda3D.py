@@ -5,8 +5,7 @@ from direct.task import Task
 from direct.actor.Actor import Actor
 from direct.interval.IntervalGlobal import Sequence
 from panda3d.core import Point3, WindowProperties
-from direct.gui.OnscreenImage import OnscreenImage
-from panda3d.core import TransparencyAttrib
+from PIL import Image
 
 class MyApp(ShowBase):
     def __init__(self):
@@ -93,9 +92,6 @@ class MyApp(ShowBase):
         # Track key state
         self.keys = {'left': False, 'right': False, 'up': False, 'down': False}
 
-        # Initialize overlay attribute
-        self.square_overlay = None
-
         # Initial direction.
         self.rotation_direction = None
         self.frame_counter = 0
@@ -104,17 +100,33 @@ class MyApp(ShowBase):
         self.keys[key] = value
         self.rotation_direction = key if value else None
 
-    def add_square_overlay(self, direction):
+    def create_overlay_png(self, direction):
+        # Create a transparent 128x128 image
+        overlay = Image.new('RGBA', (128, 128), (0, 0, 0, 0))
+
+        # Create a 4x4 red square
+        red_square = Image.new('RGBA', (4, 4), (255, 0, 0, 255))
+
+        # Determine the position to paste the red square based on the direction
         positions = {
-            'up': (0, 0, 0.8),
-            'down': (0, 0, -0.8),
-            'left': (-0.8, 0, 0),
-            'right': (0.8, 0, 0)
+            'up': (62, 10),
+            'down': (62, 114),
+            'left': (10, 62),
+            'right': (114, 62)
         }
         pos = positions[direction]
-        square = OnscreenImage(image='red_square.png', pos=pos, scale=0.04, parent=render2d)
-        square.setTransparency(TransparencyAttrib.MAlpha)
-        return square
+
+        # Paste the red square onto the overlay
+        overlay.paste(red_square, pos)
+
+        # Save the overlay as a PNG file
+        overlay.save(f'frame_caps/overlay/overlay-{self.frame_counter:05d}.png')
+
+    def create_empty_overlay_png(self):
+        # Create a transparent 128x128 image
+        overlay = Image.new('RGBA', (128, 128), (0, 0, 0, 0))
+        # Save the overlay as a PNG file
+        overlay.save(f'frame_caps/overlay/overlay-{self.frame_counter:05d}.png')
 
     # Define a procedure to move the camera.
     def spinCameraTask(self, task):
@@ -142,24 +154,20 @@ class MyApp(ShowBase):
         self.camera.setPos(Point3(x, y, z))
         self.camera.lookAt(0, 0, 0)
 
+        # Save the raw screenshot without the overlay
+        self.win.saveScreenshot(f"frame_caps/naked/frame-{self.frame_counter:05d}.png")
+
         if self.rotation_direction:
-            # Render the red square indicating the input direction
-            if self.square_overlay:
-                self.square_overlay.destroy()
-            self.square_overlay = self.add_square_overlay(self.rotation_direction)
+            # Create and save the overlay PNG
+            self.create_overlay_png(self.rotation_direction)
+        else:
+            # Create and save an empty overlay PNG
+            self.create_empty_overlay_png()
 
-            # Save the current frame as a PNG file, with and without encoding
-            self.square_overlay.hide()
-            self.win.saveScreenshot(f"frame_caps/frame-{self.frame_counter:05d}.png")
-            self.square_overlay.show()
-            self.win.saveScreenshot(f"frame_caps/frame-encoded-{self.frame_counter:05d}.png")
-
-            self.frame_counter += 1
-        elif self.square_overlay:
-            self.square_overlay.destroy()
-            self.square_overlay = None
+        self.frame_counter += 1
 
         return Task.cont
+
 
 app = MyApp()
 app.run()
