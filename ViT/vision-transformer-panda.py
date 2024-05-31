@@ -26,8 +26,22 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.cuda.amp import GradScaler, autocast
+
 import numpy as np
 import random
+
+import platform
+
+
+def get_os_type():
+    os_type = platform.system()
+    if os_type == "Linux":
+        return "linux"
+    elif os_type == "Darwin":
+        return "macos"
+    else:
+        return "Unknown"
+
 
 # set up CUDA
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -37,6 +51,7 @@ else:
     print("Booo!!!")
 
 device = torch.device('cuda')
+
 
 # pretty print preamble
 def config_pretty_print(root_path, num_params, heads, layers, batch_size, img_size, patch_size, epochs_warmup, epochs_main, lr_warmup, lr_main):
@@ -224,7 +239,13 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-training_dir = '/Users/damir00/Sandbox/GenJinni/panda3d/frame_caps'
+os_type = get_os_type()
+if os_type == 'macos':
+    # macos
+    training_dir = '/Users/damir00/Sandbox/GenJinni/panda3d/frame_caps'
+else:
+    # ubuntu
+    training_dir = '/home/damir00/Sandbox/GenJinni/panda3d/frame_caps'
 
 # Dataset and DataLoader
 print(f"Arrangine the dataset...")
@@ -309,8 +330,6 @@ remaining_main_epochs = max(0, max_epochs - start_epoch_main)
 
 
 # Training loop
-
-training_dir = '/Users/damir00/Sandbox/GenJinni/panda3d/frame_caps'
 
 # Warmup phase
 print(f"Warmup training phase...")
