@@ -196,6 +196,7 @@ class PairedImageDataset(Dataset):
         return len(self.naked_images) - 2
 
     def __getitem__(self, idx):
+        print(f'Datset index: {idx}')
         naked_img_path = os.path.join(self.naked_dir, self.naked_images[idx])
         target_img_path = os.path.join(self.naked_dir, self.naked_images[idx + 1])
         overlay_img_path = os.path.join(self.overlay_dir, self.overlay_images[idx])
@@ -211,7 +212,6 @@ class PairedImageDataset(Dataset):
             target_image = self.transform(target_image)
 
         target_image = target_image.view(-1)  # Flatten target image
-        print(f'Datset index: {idx}')
 
         return source_image, target_image
 
