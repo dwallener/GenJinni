@@ -9,7 +9,6 @@
 # because apparently we need crap tons of training images
 
 
-
 # handle input params
 import argparse
 
@@ -164,20 +163,29 @@ from torchvision import transforms
 from PIL import Image
 
 class PairedImageDataset(Dataset):
+    # here image_dir is the root folder for naked/overlay
     def __init__(self, image_dir, transform=None):
         self.image_dir = image_dir
-        self.images = sorted([f for f in os.listdir(image_dir) if f.lower().endswith(('.png'))])        
+        self.naked_dir = f'{image_dir}/naked/'
+        self.overlay_dir = f'{image_dir}/encoded'
+        self.images = sorted([f for f in os.listdir(self.naked_dir) if f.lower().endswith(('.png'))])        
         self.transform = transform
+        print(f"Sourcing images from {self.naked_dir}")
+        print(f"Sourcing encoding from {self.overlay_dir}")
 
     def __len__(self):
         # The length is one less than the number of images, as the last image has no subsequent image
         return len(self.images) - 2
 
     def __getitem__(self, idx):
-        source_img_path = os.path.join(self.image_dir, self.images[idx])
-        target_img_path = os.path.join(self.image_dir, self.images[idx + 1])
+        naked_img_path = os.path.join(self.naked_dir, self.images[idx])
+        target_img_path = os.path.join(self.naked_dir, self.images[idx + 1])
+        overlay_img_path = os.path.join(self.overlay_dir, self.images[idx])
 
-        source_image = Image.open(source_img_path).convert('RGB')
+        # RGBA...?
+        naked_image = Image.open(naked_img_path).convert('RGBA')
+        overlay_image = Image.open(overlay_img_path).convert('RGBA')
+        source_image = Image.alpha_composite(naked_image, overlay_image).convert('RGB')
         target_image = Image.open(target_img_path).convert('RGB')
 
         if self.transform:
@@ -189,6 +197,10 @@ class PairedImageDataset(Dataset):
         return source_image, target_image
 
 # the original one, for using separate dirs
+# the pattern is...
+# source = last image + overlay
+# target = next image
+
 class PairedImageDataset2(Dataset):
     def __init__(self, source_dir, target_dir, transform=None):
         self.source_dir = source_dir
@@ -216,23 +228,23 @@ class PairedImageDataset2(Dataset):
         return source_image, target_image
 
 
-# TODO: Put this in a class and import it so training and running can use the same values
-# Hyperparameters and paths
-img_size = 64
-patch_size = 4
-in_channels = 3
-emb_dim = 1024
-num_heads = 4
-num_layers = 24
-forward_expansion = 4
-num_classes = img_size * img_size * in_channels  # Assuming next frame prediction with same size
-batch_size = 4
+from Hyperparameters import Hyperparameters
+hp = Hyperparameters()
+
+img_size = hp.img_size
+patch_size = hp.patch_size
+in_channels = hp.in_channels
+emb_dim = hp.emb_dim
+num_heads = hp.num_heads
+num_layers = hp.num_layers
+forward_expansion = hp.forward_expansion
+num_classes = hp.num_classes
+batch_size = hp.batch_size
 
 # training length control
 # warmup_epochs = 50
 # main_epochs = 500
 
-training_sets = ['hk-patches', 'mk64-rr-source', 'sv-patches', 'racer-track']
 set_length = 1200
 
 # TODO: This section is outdated...clean up or toss
@@ -248,8 +260,8 @@ transform = transforms.Compose([
 
 # Dataset and DataLoader
 print(f"Arrangine the dataset...")
-# dataset = PairedImageDataset(source_dir, target_dir, transform)
-dataset = PairedImageDataset(source_dir, transform)
+# we sort out the overlay, target, source frames inside the called function
+dataset = PairedImageDataset2(source_dir, target_dir, transform)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Model
@@ -286,12 +298,12 @@ config_pretty_print(root_path, num_parameters, num_heads, num_layers, batch_size
 
 
 # Manage checkpoints
+
 # Checkpoint paths
 checkpoint_dir = f'checkpoints/{root_path}'
 os.makedirs(checkpoint_dir, exist_ok=True)
 warmup_checkpoint_path = os.path.join(checkpoint_dir, 'warmup_checkpoint.pth')
 main_checkpoint_path = os.path.join(checkpoint_dir, 'main_checkpoint.pth')
-
 
 # Function to save checkpoint
 def save_checkpoint(model, optimizer, epoch, scaler, checkpoint_path):
@@ -323,66 +335,60 @@ start_epoch_warmup = load_checkpoint(warmup_checkpoint_path, model, optimizer, s
 start_epoch_main = load_checkpoint(main_checkpoint_path, model, optimizer, scaler)
 
 # calculate remaining epochs
-remaining_warmup_epochs = max(0, max_warmup_epochs - start_epoch_warmup)
+rem_warm_epochs = max(0, max_warmup_epochs - start_epoch_warmup)
 remaining_main_epochs = max(0, max_epochs - start_epoch_main)
+
 
 # Training loop
 
-# TODO: Need to clean this up to better reflect 'root_name'
-#training_dir = 'dataset/training'
-#subdirs = [os.path.join(training_dir, d) for d in os.listdir(training_dir) if os.path.isdir(os.path.join(training_dir, d))]
-training_dir = 'dataset/training/panda_frame_caps'
+training_dir = '../panda3d/frame_caps'
+# this should return 'naked' and 'overlay'
 subdirs = ['dataset/training/panda_frame_caps']
+print(f'Found these dataset folders...{subdirs}')
 
-# TODO: Need to allow two separate dirs for source/target, to cover the encoded use case
 
 # Warmup phase
 print(f"Warmup training phase...")
 # check for existing warmup checkpoint
-for epoch in range(start_epoch_warmup, start_epoch_warmup + remaining_warmup_epochs):
-
-    # every epoch we pull a random frame and store the model results
-    #test_frame = random.randint(0,500)
+for epoch in range(start_epoch_warmup, start_epoch_warmup + rem_warm_epochs):
 
     # move on if we've already done this
     if epoch >= max_warmup_epochs:
         break
     model.train()
 
-    sample_frame = 0
+    # what does this do...?
+    # sample_frame = 0
 
-    for subdir in subdirs:
-        print(f"Sourcing from training set {subdir}")
-        source_subdir = subdir + '/a_encoded'
-        target_subdir = subdir + '/a_naked'
-        #dataset = PairedImageDataset(subdir, transform=transform)
-        dataset = PairedImageDataset2(source_subdir, target_subdir, transform=transform)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # source and target are created inside this next call
+    # including compositing the naked and encoded images
+    dataset = PairedImageDataset(training_dir, transform=transform)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-        for batch_idx, (source, target) in enumerate(dataloader):
+    for batch_idx, (source, target) in enumerate(dataloader):
 
-            if batch_idx > set_length / batch_size:
-                break
+        if batch_idx > set_length / batch_size:
+            break
 
-            source, target = source.to(device), target.to(device)
-            # Forward pass
-            with autocast():
-                outputs = model(source).to(device)
-                loss = criterion(outputs, target)
+        source, target = source.to(device), target.to(device)
+        # Forward pass
+        with autocast():
+            outputs = model(source).to(device)
+            loss = criterion(outputs, target)
 
-            # Backward pass and optimization
-            optimizer.zero_grad()
-            # this is the fp32 line
-            # loss.backward()
-            # optimizer.step()
-            # this is the fp16 lines
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        # this is the fp32 line
+        # loss.backward()
+        # optimizer.step()
+        # this is the fp16 lines
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
-            if (batch_idx + 1) % 10 == 0:
-                print(f'Warmup Epoch [{epoch+1}/{max_warmup_epochs}], Step [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}')
-                print(f'Warmup Epoch [{epoch+1}/{max_warmup_epochs}], Step [{batch_idx*batch_size}/{set_length}], Loss: {loss.item():.4f}')
+        if (batch_idx + 1) % 10 == 0:
+            print(f'Warmup Epoch [{epoch+1}/{max_warmup_epochs}], Step [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}')
+            print(f'Warmup Epoch [{epoch+1}/{max_warmup_epochs}], Step [{batch_idx*batch_size}/{set_length}], Loss: {loss.item():.4f}')
                 
 
     # Save checkpoint
@@ -400,12 +406,8 @@ for param_group in optimizer.param_groups:
 # be able to source from multiple training datasets 
 # organized as 'dataset/training/...'
 
-# TODO: clean this mess up...everything needs to derive from root_name
-training_dir = 'dataset/training'
-subdirs = [os.path.join(training_dir, d) for d in os.listdir(training_dir) if os.path.isdir(os.path.join(training_dir, d))]
-training_dir = 'dataset/training/panda_frame_caps'
-subdirs = ['dataset/training/panda_frame_caps']
-
+# reuse the same training dir...
+training_dir = training_dir
 
 # Main training phase
 for epoch in range(start_epoch_main, start_epoch_main + remaining_main_epochs):
@@ -413,40 +415,39 @@ for epoch in range(start_epoch_main, start_epoch_main + remaining_main_epochs):
     if epoch >= max_epochs:
         break
     model.train()
-    for subdir in subdirs:
-        print(f"Sourcing from training set {subdir}")
-        #dataset = PairedImageDataset(subdir, transform=transform)
-        source_subdir = subdir + '/a_encoded'
-        target_subdir = subdir + '/a_naked'
-        dataset = PairedImageDataset2(source_subdir, target_subdir, transform=transform)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-        for batch_idx, (source, target) in enumerate(dataloader):
 
-            if batch_idx > set_length / batch_size:
-                break
+    print(f"Sourcing from training set {training_dir}")
 
-            source, target = source.to(device), target.to(device)
-            # Forward pass
-            with autocast():
-                outputs = model(source)
-                loss = criterion(outputs, target)
+    dataset = PairedImageDataset(training_dir, transform=transform)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-            # Backward pass and optimization
-            optimizer.zero_grad()
-            # fp32 way
-            # loss.backward()
-            # optimizer.step()
-            # this is the auto fp16 way
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+    for batch_idx, (source, target) in enumerate(dataloader):
 
-            if (batch_idx + 1) % 10 == 0:
-                print(f'Epoch [{epoch+1}/{max_epochs}], Step [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}')
-                print(f'Epoch [{epoch+1}/{max_epochs}], Step [{batch_idx*batch_size}/{set_length}], Loss: {loss.item():.4f}')                
+        if batch_idx > set_length / batch_size:
+            break
 
-            if batch_idx > set_length:
-                break
+        source, target = source.to(device), target.to(device)
+        # Forward pass
+        with autocast():
+            outputs = model(source)
+            loss = criterion(outputs, target)
+
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        # fp32 way
+        # loss.backward()
+        # optimizer.step()
+        # this is the auto fp16 way
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        if (batch_idx + 1) % 10 == 0:
+            print(f'Epoch [{epoch+1}/{max_epochs}], Step [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}')
+            print(f'Epoch [{epoch+1}/{max_epochs}], Step [{batch_idx*batch_size}/{set_length}], Loss: {loss.item():.4f}')                
+
+        if batch_idx > set_length:
+            break
 
     # turn this on to save checkpoint on each epoch
     # torch.save(model.state_dict(), f'checkpoints/mk64-rr-checkpoint-epoch{epoch+1}.pth')
@@ -455,7 +456,6 @@ for epoch in range(start_epoch_main, start_epoch_main + remaining_main_epochs):
     if epoch % 100 == 0:
         main_checkpoint_path = os.path.join(checkpoint_dir, f'e{epoch:04d}_main_checkpoint.pth')
         save_checkpoint(model, optimizer, epoch+1, scaler, main_checkpoint_path)
-
 
 
 print("Training completed")
