@@ -247,11 +247,6 @@ batch_size = hp.batch_size
 
 set_length = 1200
 
-# TODO: This section is outdated...clean up or toss
-source_dir = f'dataset/training/{root_path}'
-target_dir = f'dataset/training/{root_path}'
-#
-
 # Transforms
 transform = transforms.Compose([
     transforms.Resize((img_size, img_size)),
@@ -261,7 +256,7 @@ transform = transforms.Compose([
 # Dataset and DataLoader
 print(f"Arrangine the dataset...")
 # we sort out the overlay, target, source frames inside the called function
-dataset = PairedImageDataset2(source_dir, target_dir, transform)
+dataset = PairedImageDataset(root_path, transform)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Model
