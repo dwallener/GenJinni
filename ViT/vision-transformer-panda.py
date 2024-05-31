@@ -309,11 +309,7 @@ remaining_main_epochs = max(0, max_epochs - start_epoch_main)
 
 # Training loop
 
-training_dir = '../panda3d/frame_caps'
-# this should return 'naked' and 'overlay'
-subdirs = ['dataset/training/panda_frame_caps']
-print(f'Found these dataset folders...{subdirs}')
-
+training_dir = '/Users/damir00/Sandbox/GenJinni/panda3d/frame_caps'
 
 # Warmup phase
 print(f"Warmup training phase...")
