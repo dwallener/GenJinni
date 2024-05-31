@@ -166,8 +166,8 @@ class PairedImageDataset(Dataset):
     # here image_dir is the root folder for naked/overlay
     def __init__(self, image_dir, transform=None):
         self.image_dir = image_dir
-        self.naked_dir = f'{image_dir}/naked/'
-        self.overlay_dir = f'{image_dir}/overlay'
+        self.naked_dir = f'{image_dir}naked/'
+        self.overlay_dir = f'{image_dir}overlay/'
         self.images = sorted([f for f in os.listdir(self.naked_dir) if f.lower().endswith(('.png'))])        
         self.transform = transform
         print(f"Sourcing images from {self.naked_dir}")
