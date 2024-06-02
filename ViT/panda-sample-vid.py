@@ -65,6 +65,15 @@ def read_images(image_dir, indices, prefix):
     return torch.stack(images)
 
 
+def load_images(image_dir, indices, prefix):
+    images = []
+    for idx in indices:
+        img_path = os.path.join(image_dir, f'{prefix}{idx:05d}.png')
+        img = Image.open(img_path).convert('RGB')
+        images.append(img)
+    return images
+
+
 import cv2
 import numpy as np
 
@@ -80,12 +89,8 @@ def tensor_to_image(tensor):
     return tensor
 
 
-def generate_movie(source_tensors, target_tensors, output_tensors, output_filename='panda-sample-video.mp4'):
+def generate_movie(source_imgs, target_imgs, output_imgs, output_filename='panda-sample-video.mp4'):
 
-    source_imgs = [tensor_to_image(tensor) for tensor in source_tensors]
-    target_imgs = [tensor_to_image(tensor) for tensor in target_tensors]
-    output_imgs = [tensor_to_image(tensor) for tensor in output_tensors]
-    
     # Ensure all lists have the same length
     assert len(source_imgs) == len(target_imgs) == len(output_imgs), "All image lists must have the same length"
 
@@ -153,7 +158,7 @@ def main():
     # run the model
     print("Running model...")
     with torch.no_grad():
-        output_images = model(source_images)
+        output_images = model(source_images).cpu().view(in_channels, img_size, img_size)
     
     # dump the results
     generate_movie(source_images, target_images, output_images)

@@ -123,13 +123,6 @@ def main():
         # dump the results
         display_and_save_plot(source_images, target_images, output_images, epoch)
 
-        # run the model
-        print("Running model...")
-        with torch.no_grad():
-            output_images = model(source_images)
-
-        # dump the results
-        display_and_save_plot(source_images, target_images, output_images, epoch)
 
 if __name__ == "__main__":
     N = 10
