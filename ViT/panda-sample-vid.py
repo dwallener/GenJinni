@@ -81,25 +81,36 @@ def display_and_save_plot(source_images, target_images, output_images, epoch):
     plt.close()
 
 
-def save_movie(source_images, target_images, output_images, epoch, frames):
-
-    fix, axes = plt.subplots(frames, 3, figsize=(15, 30))
-    for i in range(frames):
-        axes[i, 0].imshow(transforms.ToPILImage()(source_images[i]))
-        axes[i,0].set_title('Source')
-        axes[i, 1].imshow(transforms.ToPILImage()(target_images[i]))
-        axes[i,1].set_title('Target')
-        axes[i, 2].imshow(transforms.ToPILImage()(output_images[i].view(in_channels, img_size, img_size)))
-        axes[i,2].set_title('Output')
-        for ax in axes[i]:
-            ax.axis('off')
-    plt.tight_layout()
-    plt.savefig(f'panda3d/mepoch-{epoch:05d}.png')
-    plt.close()
+import cv2
+import glob
 
 
-def save_movie()
-    pass
+def create_video_from_images(image_files, output_video_path, fps=30):
+    if not image_files:
+        print("No images provided.")
+        return
+
+    # Read the first image to get the dimensions
+    frame = cv2.imread(image_files[0])
+    if frame is None:
+        print(f"Unable to read image file: {image_files[0]}")
+        return
+    height, width, layers = frame.shape
+
+    # Define the codec and create the VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
+    for image_file in image_files:
+        frame = cv2.imread(image_file)
+        if frame is None:
+            print(f"Unable to read image file: {image_file}")
+            continue
+        out.write(frame)  # Write the frame to the video
+
+    out.release()  # Release the video writer
+    print(f"Video saved as {output_video_path}")
+
 
 def main():
 
@@ -141,7 +152,12 @@ def main():
             output_images = model(source_images)
         
         # dump the results
-        save_movie(source_images, target_images, output_images, epoch, P)
+
+    # Example usage
+    # this should pick up from the most recent epoch
+    create_video_from_images(source_images, 'panda3d', 'panda_source_video.mp4')
+    create_video_from_images(target_images, 'panda3d', 'panda_target_video.mp4')
+    create_video_from_images(output_images, 'panda3d', 'panda_target_video.mp4')
 
 
 if __name__ == "__main__":
