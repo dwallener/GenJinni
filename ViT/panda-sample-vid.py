@@ -65,68 +65,41 @@ def read_images(image_dir, indices, prefix):
     return torch.stack(images)
 
 
-def load_images(image_dir, indices, prefix):
-    images = []
-    for idx in indices:
-        img_path = os.path.join(image_dir, f'{prefix}{idx:05d}.png')
-        img = Image.open(img_path).convert('RGB')
-        images.append(img)
-    return images
+def display_and_save_plot(source_images, target_images, output_images, epoch):
+    fix, axes = plt.subplots(10, 3, figsize=(15, 30))
+    for i in range(10):
+        axes[i, 0].imshow(transforms.ToPILImage()(source_images[i]))
+        axes[i,0].set_title('Source')
+        axes[i, 1].imshow(transforms.ToPILImage()(target_images[i]))
+        axes[i,1].set_title('Target')
+        axes[i, 2].imshow(transforms.ToPILImage()(output_images[i].view(in_channels, img_size, img_size)))
+        axes[i,2].set_title('Output')
+        for ax in axes[i]:
+            ax.axis('off')
+    plt.tight_layout()
+    plt.savefig(f'panda3d/mepoch-{epoch:05d}.png')
+    plt.close()
 
 
-import cv2
-import numpy as np
+def save_movie(source_images, target_images, output_images, epoch, frames):
+
+    fix, axes = plt.subplots(frames, 3, figsize=(15, 30))
+    for i in range(frames):
+        axes[i, 0].imshow(transforms.ToPILImage()(source_images[i]))
+        axes[i,0].set_title('Source')
+        axes[i, 1].imshow(transforms.ToPILImage()(target_images[i]))
+        axes[i,1].set_title('Target')
+        axes[i, 2].imshow(transforms.ToPILImage()(output_images[i].view(in_channels, img_size, img_size)))
+        axes[i,2].set_title('Output')
+        for ax in axes[i]:
+            ax.axis('off')
+    plt.tight_layout()
+    plt.savefig(f'panda3d/mepoch-{epoch:05d}.png')
+    plt.close()
 
 
-def tensor_to_image(tensor):
-    """
-    Convert a PyTorch tensor to a NumPy array suitable for OpenCV.
-    Assumes the tensor is in the format (C, H, W) and values are in the range [0, 1].
-    """
-    tensor = tensor.detach().cpu()  # Detach from graph and move to CPU
-    tensor = tensor.permute(1, 2, 0).numpy()  # Rearrange dimensions to (H, W, C)
-    tensor = (tensor * 255).astype(np.uint8)  # Scale to [0, 255] and convert to uint8
-    return tensor
-
-
-def generate_movie(source_imgs, target_imgs, output_imgs, output_filename='panda-sample-video.mp4'):
-
-    # Ensure all lists have the same length
-    assert len(source_imgs) == len(target_imgs) == len(output_imgs), "All image lists must have the same length"
-
-    # Get the dimensions of the images
-    height, width, layers = source_imgs[0].shape
-    
-    # Create a red border
-    border_color = (0, 0, 255)  # Red in BGR format
-    border_thickness = 2  # Thickness of the border
-    
-    # Calculate the dimensions of the output video
-    bordered_height = height + 2 * border_thickness
-    bordered_width = width + 2 * border_thickness
-    video_width = 3 * bordered_width  # Three panels horizontally
-    
-    # Define the codec and create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = 30  # Frames per second
-    video = cv2.VideoWriter(output_filename, fourcc, fps, (video_width, bordered_height))
-    
-    for src_img, tgt_img, out_img in zip(source_imgs, target_imgs, output_imgs):
-        # Add a red border to each image
-        src_img_bordered = cv2.copyMakeBorder(src_img, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
-        tgt_img_bordered = cv2.copyMakeBorder(tgt_img, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
-        out_img_bordered = cv2.copyMakeBorder(out_img, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
-        
-        # Concatenate the images horizontally
-        frame = np.concatenate((src_img_bordered, tgt_img_bordered, out_img_bordered), axis=1)
-        
-        # Write the frame to the video
-        video.write(frame)
-    
-    # Release the video writer
-    video.release()
-    print(f"Video saved as {output_filename}")
-
+def save_movie()
+    pass
 
 def main():
 
@@ -134,35 +107,44 @@ def main():
     checkpoint_dir = 'panda3d'
     dataset_dir = '../panda3d/frame_caps/naked'
 
-    checkpoint_path = os.path.join(checkpoint_dir, 'e1500_main_checkpoint.pth')
-    model = load_model(checkpoint_path)
+    checkpoints = sorted([f for f in os.listdir(checkpoint_dir) if 'main' in f])
+    print(checkpoints)
 
-    # Read images
-    print(f"Reading images...{dataset_dir}")
-    # upper bound
-    M = len(os.listdir(dataset_dir))
-    # lower bound
-    N = 10 
-    # list length
-    P = 200
-    # stutter length
-    Q = 5 # set to whatever the frame cap stutter is
-    rounded_random_int = round(random.randint(N, M-P) / Q) * Q
-    source_indices = [rounded_random_int + Q * i for i in range(P)]
-    target_indices = [value + Q for value in source_indices]
+    for epoch, checkpoint_file in enumerate(checkpoints):
 
-    prefix = 'frame-'
-    source_images = read_images(dataset_dir, source_indices, prefix)
-    target_images = read_images(dataset_dir, target_indices, prefix)
+        checkpoint_path = os.path.join(checkpoint_dir, checkpoint_file)
+        model = load_model(checkpoint_path)
 
-    # run the model
-    print("Running model...")
-    with torch.no_grad():
-        output_images = model(source_images).cpu().view(in_channels, img_size, img_size)
-    
-    # dump the results
-    generate_movie(source_images, target_images, output_images)
+        items = os.listdir(dataset_dir)
+
+        # Read images
+        print(f"Reading images...{dataset_dir}")
+        # upper bound
+        M = len(os.listdir(dataset_dir))
+        # lower bound
+        N = 10 
+        # list length
+        P = 10 
+        # stutter length
+        Q = 5
+        rounded_random_int = round(random.randint(N, M) / Q) * Q
+        source_indices = [rounded_random_int + Q * i for i in range(P)]
+        target_indices = [value + Q for value in source_indices]
+
+        prefix = 'frame-'
+        source_images = read_images(dataset_dir, source_indices, prefix)
+        target_images = read_images(dataset_dir, target_indices, prefix)
+
+        # run the model
+        print("Running model...")
+        with torch.no_grad():
+            output_images = model(source_images)
+        
+        # dump the results
+        save_movie(source_images, target_images, output_images, epoch, P)
+
 
 if __name__ == "__main__":
+    N = 10
     main()
 

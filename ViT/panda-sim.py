@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 
-path_to_orig = "output/panda_frame_caps"
+path_to_orig = "output/panda_sim"
 
 class PatchEmbedding(nn.Module):
     def __init__(self, in_channels, patch_size, emb_dim, img_size):
@@ -113,22 +113,21 @@ class VisionTransformer(nn.Module):
 
 
 # checkpoints
-checkpoint_dir = '/home/damir00/Sandbox/transformer-from-scratch/checkpoints/panda_frame_caps/'
-checkpoint_path = '/home/damir00/Sandbox/transformer-from-scratch/checkpoints/panda_frame_caps/e0300_main_checkpoint.pth'
+checkpoint_dir = 'panda3d'
 dataset_dir = 'dataset/training/panda_frame_caps'
 
-# TODO: Import these from the same class as used by training
-# Hyperparameters and paths
-img_size = 128
-patch_size = 8
-in_channels = 3
-emb_dim = 1024
-num_heads = 4
-num_layers = 18
-forward_expansion = 4
-num_classes = img_size * img_size * in_channels  # Assuming next frame prediction with same size
-batch_size = 4
+from Hyperparameters import Hyperparameters
+hp = Hyperparameters()
 
+img_size = hp.img_size
+patch_size = hp.patch_size
+in_channels = hp.in_channels
+emb_dim = hp.emb_dim
+num_heads = hp.num_heads
+num_layers = hp.num_layers
+forward_expansion = hp.forward_expansion
+num_classes = hp.num_classes
+batch_size = hp.batch_size
 
 def load_model(checkpoint_path):
     model = VisionTransformer(
@@ -148,8 +147,9 @@ def load_model(checkpoint_path):
     return model
 
 
-model = load_model(checkpoint_path)
-initial_img_path = 'dataset/training/panda_frame_caps/a_encoded/frame-encoded-00047.png'
+model = load_model(f'{checkpoint_dir}/e0300_main_checkpoint.pth')
+
+initial_img_path = '../panda3d/frame_caps/naked/frame-00010.png'
 initial_img = Image.open(initial_img_path).convert('RGB')
 # Transform to tensor
 transform = transforms.Compose([
@@ -159,7 +159,7 @@ transform = transforms.Compose([
 input_img = transform(initial_img).unsqueeze(0)  # Add batch dimension
 
 # Generate 1000 frames
-output_dir = 'output/panda_frame_caps/frames'
+output_dir = 'output/panda_sim'
 
 model.eval()
 for i in range(1000):
@@ -173,6 +173,8 @@ for i in range(1000):
 
     # Use the output as the new input
     input_img = output_img.unsqueeze(0)
+    if i % 10 == 0:
+        print(f"Index: {i:05d}")
 
 print("Generated 1000 frames.")
 
