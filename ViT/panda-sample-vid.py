@@ -65,6 +65,15 @@ def read_images(image_dir, indices, prefix):
     return torch.stack(images)
 
 
+def read_images_as_PIL(image_dir, indices, prefix):
+    images = []
+    for idx in indices:
+        img_path = os.path.join(image_dir, f'{prefix}{idx:05d}.png')
+        img = Image.open(img_path).convert('RGB')
+        images.append(img)
+    return images
+
+
 def display_and_save_plot(source_images, target_images, output_images, epoch):
     fix, axes = plt.subplots(10, 3, figsize=(15, 30))
     for i in range(10):
@@ -85,82 +94,130 @@ import cv2
 import glob
 
 
-def create_video_from_images(image_files, output_video_path, fps=30):
-    if not image_files:
-        print("No images provided.")
-        return
+def tensor_to_numpy(tensor):
+
+    np_tensor = tensor.detach().cpu().numpy()
+
+    if np_tensor.shape[0] == 1:
+        print(f"Squeezing...")
+        np_tensor.np.squeeze(1, axis=0)
+
+    if np_tensor.ndim == 3 and np_tensor.shape[0] == 3:
+        print("Transposing...")
+        np_tensor = np.transpose(np_tensor, (1,2,0))
+
+    np_tensor = (np_tensor * 255).astype(np.uint8)
+    return np_tensor
+
+
+
+
+def create_video_from_images(images, output_video_path, fps=30):
+    #if not image_files:
+    #    print("No images provided.")
+    #    return
 
     # Read the first image to get the dimensions
-    frame = cv2.imread(image_files[0])
+    frame = images[0]
     if frame is None:
         print(f"Unable to read image file: {image_files[0]}")
         return
-    height, width, layers = frame.shape
+    else:
+        print(f"Image frame is fine")
+
+    height = img_size
+    width = img_size
 
     # Define the codec and create the VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
 
-    for image_file in image_files:
-        frame = cv2.imread(image_file)
+    for frame in images:
+        # frame = cv2.imread(image_file)
         if frame is None:
-            print(f"Unable to read image file: {image_file}")
+            print(f"Unable to read frame: {frame}")
             continue
-        out.write(frame)  # Write the frame to the video
+        out.write(np.array(frame))  # Write the frame to the video
 
     out.release()  # Release the video writer
     print(f"Video saved as {output_video_path}")
 
 
-def main():
+def main(P):
+
+    transform = transforms.Compose([
+        transforms.Resize((img_size, img_size)),
+        transforms.ToTensor()
+    ])
 
     # checkpoints
     checkpoint_dir = 'panda3d'
     dataset_dir = '../panda3d/frame_caps/naked'
-
+    output_dir = 'output/panda_sim'
+    
     checkpoints = sorted([f for f in os.listdir(checkpoint_dir) if 'main' in f])
-    print(checkpoints)
+    print(f"Using epoch {checkpoints[-1]}")
+    checkpoint_path = f'{checkpoint_dir}/{checkpoints[-1]}'
 
-    for epoch, checkpoint_file in enumerate(checkpoints):
+    model = load_model(checkpoint_path)
+    model.eval()
 
-        checkpoint_path = os.path.join(checkpoint_dir, checkpoint_file)
-        model = load_model(checkpoint_path)
+    # upper bound
+    M = len(os.listdir(dataset_dir)) - P
+    # lower bound
+    N = 10 
+    # stutter length
+    Q = 5
+    rounded_random_int = round(random.randint(N, M) / Q) * Q
+    source_indices = [rounded_random_int + Q * i for i in range(P)]
+    target_indices = [value + Q for value in source_indices]
 
-        items = os.listdir(dataset_dir)
+    prefix = 'frame-'
+    source_images = read_images(dataset_dir, source_indices, prefix)
+    target_images = read_images(dataset_dir, target_indices, prefix)
 
-        # Read images
-        print(f"Reading images...{dataset_dir}")
-        # upper bound
-        M = len(os.listdir(dataset_dir))
-        # lower bound
-        N = 10 
-        # list length
-        P = 10 
-        # stutter length
-        Q = 5
-        rounded_random_int = round(random.randint(N, M) / Q) * Q
-        source_indices = [rounded_random_int + Q * i for i in range(P)]
-        target_indices = [value + Q for value in source_indices]
+    source_images = source_images.unsqueeze(0)
 
-        prefix = 'frame-'
-        source_images = read_images(dataset_dir, source_indices, prefix)
-        target_images = read_images(dataset_dir, target_indices, prefix)
+    print(f'source images dims: {source_images.shape}')
 
-        # run the model
-        print("Running model...")
+    for i in range(P):
+
         with torch.no_grad():
-            output_images = model(source_images)
-        
-        # dump the results
+            output_img = model(source_images[:,i,:,:,:]).cpu().view(in_channels, img_size, img_size)
 
-    # Example usage
-    # this should pick up from the most recent epoch
-    create_video_from_images(source_images, 'panda3d', 'panda_source_video.mp4')
-    create_video_from_images(target_images, 'panda3d', 'panda_target_video.mp4')
-    create_video_from_images(output_images, 'panda3d', 'panda_target_video.mp4')
+        # Save the output image
+        output_img_pil = transforms.ToPILImage()(output_img)
+        output_img_path = os.path.join(output_dir, f'oframe_{i:05d}.png')
+        output_img_pil.save(output_img_path)
+
+        # Use the output as the new input
+        # input_img = output_img.unsqueeze(0)
+        if i % 10 == 0:
+            print(f"Index: {i:05d}")
+
+    print("Generated 1000 frames.")
+
+    # Generate an MP4 from the resulting output images
+    frame_rate = 30  # Define the frame rate
+    output_video_path = 'panda3d/output-vid.mp4'
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video_writer = cv2.VideoWriter(output_video_path, fourcc, frame_rate, (img_size, img_size))
+
+    for i in range(P):
+        frame_path = os.path.join(output_dir, f'oframe_{i:05d}.png')
+        frame = cv2.imread(frame_path)
+        video_writer.write(frame)
+
+    video_writer.release()
+    print(f"MP4 video saved to {output_video_path}.")
+
+    source_images = read_images_as_PIL(dataset_dir, source_indices, prefix)
+    target_images = read_images_as_PIL(dataset_dir, target_indices, prefix)
+    create_video_from_images(source_images, 'panda3d/source-vid.mp4')
+    create_video_from_images(target_images, 'panda3d/target-vid.mp4')
 
 
 if __name__ == "__main__":
-    N = 10
-    main()
+    P = 1000
+    main(P)
 
