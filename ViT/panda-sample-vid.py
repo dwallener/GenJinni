@@ -137,11 +137,6 @@ def main():
     with torch.no_grad():
         output_images = model(source_images)
     
-    # run the model
-    print("Running model...")
-    with torch.no_grad():
-        output_images = model(source_images)
-
     # dump the results
     generate_movie(source_images, target_images, output_images)
 
