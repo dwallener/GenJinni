@@ -123,7 +123,7 @@ def main():
     # list length
     P = 200
     # stutter length
-    Q = 3
+    Q = 5 # set to whatever the frame cap stutter is
     rounded_random_int = round(random.randint(N, M-P) / Q) * Q
     source_indices = [rounded_random_int + Q * i for i in range(P)]
     target_indices = [value + Q for value in source_indices]
