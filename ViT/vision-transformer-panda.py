@@ -232,7 +232,7 @@ batch_size = hp.batch_size
 # warmup_epochs = 50
 # main_epochs = 500
 
-set_length = 1200
+set_length = 5000
 
 # Transforms
 transform = transforms.Compose([
@@ -291,7 +291,7 @@ config_pretty_print(root_path, num_parameters, num_heads, num_layers, batch_size
 # Manage checkpoints
 
 # Checkpoint paths
-checkpoint_dir = f'checkpoints/{root_path}'
+checkpoint_dir = f'panda3d'
 os.makedirs(checkpoint_dir, exist_ok=True)
 warmup_checkpoint_path = os.path.join(checkpoint_dir, 'warmup_checkpoint.pth')
 main_checkpoint_path = os.path.join(checkpoint_dir, 'main_checkpoint.pth')
@@ -492,59 +492,3 @@ target_img = target_img.view(in_channels, img_size, img_size).cpu()
 
 # Display and save the images
 display_and_save_composition(source_img, target_img, output_img, filename='result.png')
-
-# now generate a complete run...
-print("Generating a complete run...")
-
-import cv2
-
-# Directories
-output_dir = 'output/racer-track/'
-os.makedirs(output_dir, exist_ok=True)
-
-# Load the first image from the dataset
-source_dir = 'dataset/training/mk-rr-source/'
-initial_img_path = os.path.join(source_dir, sorted(os.listdir(source_dir))[30])
-initial_img = Image.open(initial_img_path).convert('RGB')
-
-# Transform to tensor
-transform = transforms.Compose([
-    transforms.Resize((img_size, img_size)),
-    transforms.ToTensor(),
-])
-input_img = transform(initial_img).unsqueeze(0)  # Add batch dimension
-
-# Move to GPU if available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
-input_img = input_img.to(device)
-
-# Generate 1000 frames
-model.eval()
-for i in range(1000):
-    with torch.no_grad():
-        output_img = model(input_img).cpu().view(in_channels, img_size, img_size)
-
-    # Save the output image
-    output_img_pil = transforms.ToPILImage()(output_img)
-    output_img_path = os.path.join(output_dir, f'frame_{i:04d}.png')
-    output_img_pil.save(output_img_path)
-
-    # Use the output as the new input
-    input_img = output_img.unsqueeze(0).to(device)
-
-print("Generated 1000 frames.")
-
-# Generate an MP4 from the resulting output images
-frame_rate = 30  # Define the frame rate
-output_video_path = 'output/racer-track-generated.mp4'
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-video_writer = cv2.VideoWriter(output_video_path, fourcc, frame_rate, (img_size, img_size))
-
-for i in range(1000):
-    frame_path = os.path.join(output_dir, f'frame_{i:04d}.png')
-    frame = cv2.imread(frame_path)
-    video_writer.write(frame)
-
-video_writer.release()
-print(f"MP4 video saved to {output_video_path}.")
