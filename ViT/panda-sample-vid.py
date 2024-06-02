@@ -143,6 +143,47 @@ def create_video_from_images(images, output_video_path, fps=30):
     print(f"Video saved as {output_video_path}")
 
 
+def combine_videos_horizontally(video1_path, video2_path, video3_path, output_path):
+    cap1 = cv2.VideoCapture(video1_path)
+    cap2 = cv2.VideoCapture(video2_path)
+    cap3 = cv2.VideoCapture(video3_path)
+
+    width = int(cap1.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap1.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(cap1.get(cv2.CAP_PROP_FPS))
+    
+    border_thickness = 2
+    border_color = (0, 0, 255)
+
+    output_width = width * 3 + border_thickness * 4
+    output_height = height + border_thickness * 2
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (output_width, output_height))
+
+    while True:
+        ret1, frame1 = cap1.read()
+        ret2, frame2 = cap2.read()
+        ret3, frame3 = cap3.read()
+
+        if not (ret1 and ret2 and ret3):
+            break
+
+        frame1_bordered = cv2.copyMakeBorder(frame1, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
+        frame2_bordered = cv2.copyMakeBorder(frame2, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
+        frame3_bordered = cv2.copyMakeBorder(frame3, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
+
+        combined_frame = np.concatenate((frame1_bordered, frame2_bordered, frame3_bordered), axis=1)
+        
+        out.write(combined_frame)
+
+    cap1.release()
+    cap2.release()
+    cap3.release()
+    out.release()
+    print(f"Video saved as {output_path}")
+
+
 def main(P):
 
     transform = transforms.Compose([
@@ -218,6 +259,7 @@ def main(P):
     create_video_from_images(target_images, 'panda3d/target-vid.mp4')
 
     # now combine them into one mp4
+    combine_videos_horizontally('panda3d/source-vid.mp4', 'panda3d/target-vid.mp4', 'panda3d/output-vid.mp4', 'panda3d/combo_video.mp4')    
 
 if __name__ == "__main__":
     P = 1000
