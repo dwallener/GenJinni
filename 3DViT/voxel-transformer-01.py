@@ -8,6 +8,116 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 
+# Voxel Creation
+
+import numpy as np
+
+def create_time_series(length, voxel_size, initial_position, voxel_size_obj):
+    """
+    Create a time series of 3D voxel grids with a 2x2 object moving upwards and downwards.
+
+    :param length: Total number of time steps.
+    :param voxel_size: Size of the 3D grid (NxNxN).
+    :param initial_position: Initial position of the moving voxel (bottom center).
+    :param voxel_size_obj: Size of the moving voxel object (2x2x2).
+    :return: A numpy array of shape (length, 1, voxel_size, voxel_size, voxel_size) representing the time series.
+    """
+    # Initialize the 3D time series with all zeros
+    time_series = np.zeros((length, 1, voxel_size, voxel_size, voxel_size), dtype=np.float32)
+    
+    # Define the initial position
+    current_position = list(initial_position)
+    
+    # Define the gravity and velocity parameters
+    velocity = 1.0
+    gravity = -0.5
+    ascending_steps = 3
+    
+    for t in range(length):
+        # Clear previous position
+        if t > 0:
+            x, y, z = previous_position
+            time_series[t, 0, x:x+voxel_size_obj, y:y+voxel_size_obj, z:z+voxel_size_obj] = 0
+        
+        # Set new position
+        x, y, z = current_position
+        time_series[t, 0, x:x+voxel_size_obj, y:y+voxel_size_obj, z:z+voxel_size_obj] = 1
+        
+        # Update position for the next time step
+        previous_position = list(current_position)
+        if t < ascending_steps:
+            current_position[0] -= int(velocity)  # Move up
+            velocity += gravity
+        else:
+            current_position[0] += int(velocity)  # Move down
+            velocity += gravity
+        
+        # Clamp the position within the grid boundaries
+        current_position[0] = max(0, min(current_position[0], voxel_size - voxel_size_obj))
+        current_position[1] = max(0, min(current_position[1], voxel_size - voxel_size_obj))
+        current_position[2] = max(0, min(current_position[2], voxel_size - voxel_size_obj))
+        
+    return time_series
+
+
+# visualize the time series
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import animation
+
+def animate_voxels(time_series):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    def update_plot(frame):
+        ax.clear()
+        ax.set_xlim(0, time_series.shape[2])
+        ax.set_ylim(0, time_series.shape[3])
+        ax.set_zlim(0, time_series.shape[4])
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+
+        data = time_series[frame, 0]
+        x, y, z = np.where(data > 0)
+
+        ax.scatter(x, y, z, zdir='z', c='red')
+
+        ax.set_title(f'Time Step: {frame}')
+
+    ani = animation.FuncAnimation(fig, update_plot, frames=len(time_series), interval=200)
+    plt.show()
+
+# Parameters for the time series
+length = 20
+voxel_size = 32
+initial_position = (30, 15, 15)
+voxel_size_obj = 2
+
+# Create the time series
+time_series = create_time_series(length, voxel_size, initial_position, voxel_size_obj)
+
+# Animate the time series
+animate_voxels(time_series)
+
+# Parameters
+length = 20
+voxel_size = 32
+initial_position = (30, 15, 15)
+voxel_size_obj = 2
+
+# Create the time series
+time_series = create_time_series(length, voxel_size, initial_position, voxel_size_obj)
+
+# Verify the output
+for t in range(length):
+    print(f"Time step {t}:")
+    print(time_series[t, 0, :, :, :])
+
 class VoxelDataset(Dataset):
     def __init__(self, data):
         self.data = data
@@ -92,7 +202,7 @@ for epoch in range(epochs):
         optimizer.step()
         
         if batch_idx % 10 == 0:
-            print(f'Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}')
+            print(f"Epoch [{epoch+1}/{epochs}], Step [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}")
 
 print("Training complete.")
 
