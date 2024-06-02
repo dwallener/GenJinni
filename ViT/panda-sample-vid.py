@@ -105,15 +105,6 @@ def generate_movie(source_imgs, target_imgs, output_imgs, output_filename='panda
     video.release()
     print(f"Video saved as {output_filename}")
 
-# Example usage
-if __name__ == "__main__":
-    # Example images (replace with your actual image data)
-    source_imgs = [cv2.imread('path_to_source_image1.jpg'), cv2.imread('path_to_source_image2.jpg')]
-    target_imgs = [cv2.imread('path_to_target_image1.jpg'), cv2.imread('path_to_target_image2.jpg')]
-    output_imgs = [cv2.imread('path_to_output_image1.jpg'), cv2.imread('path_to_output_image2.jpg')]
-    
-    create_sample_video(source_imgs, target_imgs, output_imgs)    pass
-
 def main():
 
     # checkpoints
