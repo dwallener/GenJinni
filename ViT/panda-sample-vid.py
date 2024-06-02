@@ -211,11 +211,13 @@ def main(P):
     video_writer.release()
     print(f"MP4 video saved to {output_video_path}.")
 
+    # dump out the other two
     source_images = read_images_as_PIL(dataset_dir, source_indices, prefix)
     target_images = read_images_as_PIL(dataset_dir, target_indices, prefix)
     create_video_from_images(source_images, 'panda3d/source-vid.mp4')
     create_video_from_images(target_images, 'panda3d/target-vid.mp4')
 
+    # now combine them into one mp4
 
 if __name__ == "__main__":
     P = 1000
