@@ -144,14 +144,20 @@ def create_video_from_images(images, output_video_path, fps=30):
 
 
 def combine_videos_horizontally(video1_path, video2_path, video3_path, output_path):
+
     cap1 = cv2.VideoCapture(video1_path)
     cap2 = cv2.VideoCapture(video2_path)
     cap3 = cv2.VideoCapture(video3_path)
+
+    if not (cap1.isOpened() and cap2.isOpened() and cap3.isOpened()):
+        print(f'One of the input videos is bad')
 
     width = int(cap1.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap1.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap1.get(cv2.CAP_PROP_FPS))
     
+    print(f'Width: {width} Height:{height} fps: {fps}')
+
     border_thickness = 2
     border_color = (0, 0, 255)
 
@@ -160,8 +166,11 @@ def combine_videos_horizontally(video1_path, video2_path, video3_path, output_pa
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, fps, (output_width, output_height))
+    print(f'Setup complete...')
 
+    idx = 0
     while True:
+        print(f'Frame: {idx}')
         ret1, frame1 = cap1.read()
         ret2, frame2 = cap2.read()
         ret3, frame3 = cap3.read()
@@ -176,6 +185,7 @@ def combine_videos_horizontally(video1_path, video2_path, video3_path, output_pa
         combined_frame = np.concatenate((frame1_bordered, frame2_bordered, frame3_bordered), axis=1)
         
         out.write(combined_frame)
+        idx +=1
 
     cap1.release()
     cap2.release()
@@ -259,7 +269,10 @@ def main(P):
     create_video_from_images(target_images, 'panda3d/target-vid.mp4')
 
     # now combine them into one mp4
-    combine_videos_horizontally('panda3d/source-vid.mp4', 'panda3d/target-vid.mp4', 'panda3d/output-vid.mp4', 'panda3d/combo_video.mp4')    
+    # this doesn't work, file generates but won't play
+    combine_videos_horizontally('panda3d/source-vid.mp4', 'panda3d/target-vid.mp4', 'panda3d/output-vid.mp4', 'panda3d/combo-vid.mp4')    
+    # do this in terminal
+    # ffmpeg -i panda3d/source-vid.mp4 -i panda3d/target-vid.mp4 -i panda3d/output-vid.mp4 -filter_complex hstack=inputs=3 output.mp4
 
 if __name__ == "__main__":
     P = 1000
