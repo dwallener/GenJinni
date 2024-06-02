@@ -65,8 +65,54 @@ def read_images(image_dir, indices, prefix):
     return torch.stack(images)
 
 
-def generate_movie(source_imgs, target_imgs, output_imgs):
-    pass
+import cv2
+import numpy as np
+
+def generate_movie(source_imgs, target_imgs, output_imgs, output_filename='panda-sample-video.mp4'):
+    # Ensure all lists have the same length
+    assert len(source_imgs) == len(target_imgs) == len(output_imgs), "All image lists must have the same length"
+    
+    # Get the dimensions of the images
+    height, width, layers = source_imgs[0].shape
+    
+    # Create a red border
+    border_color = (0, 0, 255)  # Red in BGR format
+    border_thickness = 2  # Thickness of the border
+    
+    # Calculate the dimensions of the output video
+    bordered_height = height + 2 * border_thickness
+    bordered_width = width + 2 * border_thickness
+    video_width = 3 * bordered_width  # Three panels horizontally
+    
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fps = 30  # Frames per second
+    video = cv2.VideoWriter(output_filename, fourcc, fps, (video_width, bordered_height))
+    
+    for src_img, tgt_img, out_img in zip(source_imgs, target_imgs, output_imgs):
+        # Add a red border to each image
+        src_img_bordered = cv2.copyMakeBorder(src_img, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
+        tgt_img_bordered = cv2.copyMakeBorder(tgt_img, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
+        out_img_bordered = cv2.copyMakeBorder(out_img, border_thickness, border_thickness, border_thickness, border_thickness, cv2.BORDER_CONSTANT, value=border_color)
+        
+        # Concatenate the images horizontally
+        frame = np.concatenate((src_img_bordered, tgt_img_bordered, out_img_bordered), axis=1)
+        
+        # Write the frame to the video
+        video.write(frame)
+    
+    # Release the video writer
+    video.release()
+    print(f"Video saved as {output_filename}")
+
+# Example usage
+if __name__ == "__main__":
+    # Example images (replace with your actual image data)
+    source_imgs = [cv2.imread('path_to_source_image1.jpg'), cv2.imread('path_to_source_image2.jpg')]
+    target_imgs = [cv2.imread('path_to_target_image1.jpg'), cv2.imread('path_to_target_image2.jpg')]
+    output_imgs = [cv2.imread('path_to_output_image1.jpg'), cv2.imread('path_to_output_image2.jpg')]
+    
+    create_sample_video(source_imgs, target_imgs, output_imgs)    pass
 
 def main():
 
@@ -74,46 +120,39 @@ def main():
     checkpoint_dir = 'panda3d'
     dataset_dir = '../panda3d/frame_caps/naked'
 
-    checkpoints = sorted([f for f in os.listdir(checkpoint_dir) if 'main' in f])
-    print(checkpoints)
+    checkpoint_path = os.path.join(checkpoint_dir, 'e1500_main_checkpoint.pth')
+    model = load_model(checkpoint_path)
 
-    for epoch, checkpoint_file in enumerate(checkpoints):
+    # Read images
+    print(f"Reading images...{dataset_dir}")
+    # upper bound
+    M = len(os.listdir(dataset_dir))
+    # lower bound
+    N = 10 
+    # list length
+    P = 200
+    # stutter length
+    Q = 3
+    rounded_random_int = round(random.randint(N, M-P) / Q) * Q
+    source_indices = [rounded_random_int + Q * i for i in range(P)]
+    target_indices = [value + Q for value in source_indices]
 
-        checkpoint_path = os.path.join(checkpoint_dir, checkpoint_file)
-        model = load_model(checkpoint_path)
+    prefix = 'frame-'
+    source_images = read_images(dataset_dir, source_indices, prefix)
+    target_images = read_images(dataset_dir, target_indices, prefix)
 
-        items = os.listdir(dataset_dir)
+    # run the model
+    print("Running model...")
+    with torch.no_grad():
+        output_images = model(source_images)
+    
+    # run the model
+    print("Running model...")
+    with torch.no_grad():
+        output_images = model(source_images)
 
-        # Read images
-        print(f"Reading images...{dataset_dir}")
-        # upper bound
-        M = len(os.listdir(dataset_dir))
-        # lower bound
-        N = 10 
-        # list length
-        P = 200
-        # stutter length
-        Q = 3
-        rounded_random_int = round(random.randint(N, M-P) / Q) * Q
-        source_indices = [rounded_random_int + Q * i for i in range(P)]
-        target_indices = [value + Q for value in source_indices]
-
-        prefix = 'frame-'
-        source_images = read_images(dataset_dir, source_indices, prefix)
-        target_images = read_images(dataset_dir, target_indices, prefix)
-
-        # run the model
-        print("Running model...")
-        with torch.no_grad():
-            output_images = model(source_images)
-        
-        # run the model
-        print("Running model...")
-        with torch.no_grad():
-            output_images = model(source_images)
-
-        # dump the results
-        generate_movie(source_images, target_images, output_images, epoch)
+    # dump the results
+    generate_movie(source_images, target_images, output_images)
 
 if __name__ == "__main__":
     main()
