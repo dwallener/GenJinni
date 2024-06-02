@@ -68,10 +68,27 @@ def read_images(image_dir, indices, prefix):
 import cv2
 import numpy as np
 
-def generate_movie(source_imgs, target_imgs, output_imgs, output_filename='panda-sample-video.mp4'):
+
+def tensor_to_image(tensor):
+    """
+    Convert a PyTorch tensor to a NumPy array suitable for OpenCV.
+    Assumes the tensor is in the format (C, H, W) and values are in the range [0, 1].
+    """
+    tensor = tensor.detach().cpu()  # Detach from graph and move to CPU
+    tensor = tensor.permute(1, 2, 0).numpy()  # Rearrange dimensions to (H, W, C)
+    tensor = (tensor * 255).astype(np.uint8)  # Scale to [0, 255] and convert to uint8
+    return tensor
+
+
+def generate_movie(source_tensors, target_tensors, output_tensors, output_filename='panda-sample-video.mp4'):
+
+    source_imgs = [tensor_to_image(tensor) for tensor in source_tensors]
+    target_imgs = [tensor_to_image(tensor) for tensor in target_tensors]
+    output_imgs = [tensor_to_image(tensor) for tensor in output_tensors]
+    
     # Ensure all lists have the same length
     assert len(source_imgs) == len(target_imgs) == len(output_imgs), "All image lists must have the same length"
-    
+
     # Get the dimensions of the images
     height, width, layers = source_imgs[0].shape
     
@@ -104,6 +121,7 @@ def generate_movie(source_imgs, target_imgs, output_imgs, output_filename='panda
     # Release the video writer
     video.release()
     print(f"Video saved as {output_filename}")
+
 
 def main():
 
