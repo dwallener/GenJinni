@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Upload</title>
+    <style>
+        .row {
+            margin-bottom: 20px;
+        }
+        .square, .rectangle {
+            border: 2px dashed #ccc;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .square {
+            width: 100px;
+            height: 100px;
+        }
+        .rectangle {
+            width: 400px;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <div class="row">
+            <div>Actor</div>
+            {% for i in range(4) %}
+            <div class="square"><input type="file" name="actor{{ i }}"></div>
+            {% endfor %}
+        </div>
+        <div class="row">
+            <div>NPC 1</div>
+            {% for i in range(4) %}
+            <div class="square"><input type="file" name="npc1{{ i }}"></div>
+            {% endfor %}
+        </div>
+        <div class="row">
+            <div>NPC 2</div>
+            {% for i in range(4) %}
+            <div class="square"><input type="file" name="npc2{{ i }}"></div>
+            {% endfor %}
+        </div>
+        <div class="row">
+            <div>NPC 3</div>
+            {% for i in range(4) %}
+            <div class="square"><input type="file" name="npc3{{ i }}"></div>
+            {% endfor %}
+        </div>
+        <div class="row">
+            <div>Arena</div>
+            <div class="rectangle"><input type="file" name="arena"></div>
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
