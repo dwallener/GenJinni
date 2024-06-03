@@ -118,6 +118,7 @@ for t in range(length):
     print(f"Time step {t}:")
     print(time_series[t, 0, :, :, :])
 
+
 class VoxelDataset(Dataset):
     def __init__(self, data):
         self.data = data
@@ -127,6 +128,7 @@ class VoxelDataset(Dataset):
     
     def __getitem__(self, idx):
         return self.data[idx], self.data[idx + 1]
+
 
 class PatchEmbedding3D(nn.Module):
     def __init__(self, voxel_size, patch_size, emb_dim):
@@ -142,6 +144,7 @@ class PatchEmbedding3D(nn.Module):
         x = self.linear(x)
         x = x.permute(0, 2, 1, 3).contiguous().view(B, -1, self.emb_dim)
         return x
+
 
 class VisionTransformer3D(nn.Module):
     def __init__(self, voxel_size, patch_size, emb_dim, depth, num_heads, mlp_dim):
@@ -164,6 +167,7 @@ class VisionTransformer3D(nn.Module):
         x = self.output_layer(x)
         x = x.view(-1, 1, self.voxel_size, self.voxel_size, self.voxel_size)
         return x
+
 
 # Hyperparameters
 voxel_size = 32
