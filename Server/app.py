@@ -1,9 +1,11 @@
+#!/usr/bin/python3
+
 from flask import Flask, render_template, request
 import os
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = os.path.expanduser('~/Sandbox/demo-game-01')
+UPLOAD_FOLDER = os.path.expanduser('~/Sandbox/GenJinn/demo-game-01')
 ACTOR_FOLDER = os.path.join(UPLOAD_FOLDER, 'actor')
 NPC1_FOLDER = os.path.join(UPLOAD_FOLDER, 'npc1')
 NPC2_FOLDER = os.path.join(UPLOAD_FOLDER, 'npc2')
