@@ -1,7 +1,3 @@
-#!/usr/bin/python3
-
-# the server applet for submitting images for game-demo-01
-
 from flask import Flask, render_template, request
 import os
 
@@ -40,6 +36,4 @@ def upload():
     return 'Files uploaded successfully!'
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-
-    
+    app.run(host='0.0.0.0', port=5001)
