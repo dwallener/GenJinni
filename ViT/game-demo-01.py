@@ -10,7 +10,7 @@
 
 from PIL import Image, ImageOps
 import matplotlib.pyplot as plt
-
+import os
 
 def load_and_prepare_image(image, scale_factor=1.0):
     # Load the image
@@ -123,7 +123,8 @@ npc_positions = [
     [1280, 540]  # Position for npc-02
 ]
 
-background = Image.open('../../artwork/animation_collision_training_imgs/arena-sprite.png').resize((1920, 1080))
+background = Image.open('../../artwork/animation_collision_training_imgs/arena-sprite-01.png').resize((1920, 1080))
+background = Image.merge("RGB", (background.split()[2], background.split()[1], background.split()[0]))
 screen = pygame.display.set_mode((1920, 1080))
 pygame.display.set_caption("Actor and NPC Animation")
 
@@ -158,12 +159,32 @@ def rect_overlap(rect1, rect2):
                 rect1[1] + rect1[3] < rect2[1])
 
 
+def rect_overlap_area(rect1, rect2):
+    # Calculate the overlap area between two rectangles
+    x_overlap = max(0, min(rect1[0] + rect1[2], rect2[0] + rect2[2]) - max(rect1[0], rect2[0]))
+    y_overlap = max(0, min(rect1[1] + rect1[3], rect2[1] + rect2[3]) - max(rect1[1], rect2[1]))
+    return x_overlap * y_overlap
+
+
 def collision_check():
     actor_rect = (actor_position[0], actor_position[1], actor_sprites[0].width, actor_sprites[0].height)
     
     for i, npc_pos in enumerate(npc_positions):
         npc_rect = (npc_pos[0], npc_pos[1], npc_anim[i][0].shape[1], npc_anim[i][0].shape[0])
         if rect_overlap(actor_rect, npc_rect):
+            return [1 if i == j else 0 for j in range(3)]
+    
+    return [0, 0, 0]
+
+
+def collision_check_overlap():
+    actor_rect = (actor_position[0], actor_position[1], actor_sprites[0].width, actor_sprites[0].height)
+    actor_area = actor_rect[2] * actor_rect[3]
+    
+    for i, npc_pos in enumerate(npc_positions):
+        npc_rect = (npc_pos[0], npc_pos[1], npc_anim[i][0].shape[1], npc_anim[i][0].shape[0])
+        overlap_area = rect_overlap_area(actor_rect, npc_rect)
+        if overlap_area > 0.5 * actor_area:
             return [1 if i == j else 0 for j in range(3)]
     
     return [0, 0, 0]
@@ -189,7 +210,13 @@ def play_frames(frames, actor_pos=None, npc_pos=None):
         pygame.time.delay(33)
 
 
-def play_frames_simul(actor_frames, npc_frames, actor_pos, npc_pos):
+def save_frame(image, frame_number, output_dir='output/game-demo-01'):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    image.save(os.path.join(output_dir, f'frame_{frame_number:04d}.png'))
+
+
+def play_frames_simul(actor_frames, npc_frames, actor_pos, npc_pos, frame_number):
     for actor_frame, npc_frame in zip(actor_frames, npc_frames):
         actor_frame_pil = Image.fromarray(cv2.cvtColor(actor_frame, cv2.COLOR_BGR2RGB)).convert("RGBA")
         npc_frame_pil = Image.fromarray(cv2.cvtColor(npc_frame, cv2.COLOR_BGR2RGB)).convert("RGBA")
@@ -209,6 +236,11 @@ def play_frames_simul(actor_frames, npc_frames, actor_pos, npc_pos):
         pygame.display.flip()
         pygame.time.delay(33)
 
+        save_frame(updated_scene, frame_number)
+        frame_number += 1
+
+    return frame_number
+
 
 def update():
     global actor_position
@@ -217,6 +249,8 @@ def update():
     actor_direction = 'right'
 
     position_delta = 12
+
+    frame_number = 0
 
     running = True
     while running:
@@ -231,22 +265,24 @@ def update():
                 actor_position[0] -= position_delta
                 actor_direction = 'left'
                 moving = True
-                collision_result = collision_check()
+                #collision_result = collision_check()
+                collision_result = collision_check_overlap()
                 for i in range(3):
                     if collision_result[i] != 0:
                         #play_frames(actor_anim, actor_pos=actor_position)
                         #play_frames(npc_anim[i], npc_pos=npc_positions[i])
-                        play_frames_simul(actor_anim, npc_anim[i], actor_position, npc_positions[i])
+                        play_frames_simul(actor_anim, npc_anim[i], actor_position, npc_positions[i], frame_number)
         if keys[pygame.K_d]:
             actor_position[0] += position_delta
             actor_direction = 'right'
             moving = True
-            collision_result = collision_check()
+            #collision_result = collision_check()
+            collision_result = collision_check_overlap()
             for i in range(3):
                 if collision_result[i] != 0:
                     #play_frames(actor_anim, actor_pos=actor_position)
                     #play_frames(npc_anim[i], npc_pos=npc_positions[i])
-                    play_frames_simul(actor_anim, npc_anim[i], actor_position, npc_positions[i])
+                    play_frames_simul(actor_anim, npc_anim[i], actor_position, npc_positions[i], frame_number)
         
         # Update the scene with the current positions
         updated_scene = background.copy()
@@ -273,10 +309,14 @@ def update():
         screen.blit(updated_scene_pygame, (0, 0))
         pygame.display.flip()
 
+        save_frame(updated_scene, frame_number)  # Save the composited frame
+        frame_number += 1
+
         clock.tick(30)  # Limit to 30 FPS
 
     pygame.quit()
 
 
 # Run the update function
+frame_number = 0
 update()
