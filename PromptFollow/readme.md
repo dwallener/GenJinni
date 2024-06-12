@@ -1,5 +1,5 @@
 # First attempt...
-
+```bash
 PromptFollow/ 
 │ 
 ├── models/ 
@@ -16,7 +16,7 @@ PromptFollow/
 │
 ├── train.py
 └── inference.py
-
+```
 # Overview
 
 To design a transformer-based model from scratch that accepts an image and text as input and generates the next image based on directional commands for navigating a 3D world, we need to consider several components and stages of processing. Here’s a detailed description of the architecture:
