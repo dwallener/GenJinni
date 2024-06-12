@@ -1,6 +1,6 @@
 # First attempt...
 
-project/ 
+PromptFollow/ 
 │ 
 ├── models/ 
 │   ├── __init__.py
