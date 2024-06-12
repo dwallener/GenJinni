@@ -1,8 +1,8 @@
 # First attempt...
 
-project/
-│
-├── models/
+project/ 
+│ 
+├── models/ 
 │   ├── __init__.py
 │   ├── image_encoder.py
 │   ├── text_encoder.py
