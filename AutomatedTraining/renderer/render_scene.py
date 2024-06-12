@@ -8,11 +8,13 @@ import os
 from PIL import Image
 import numpy as np
 
+import json
 
 class Panda3DRenderer(ShowBase):
     def __init__(self, output_dir):
         ShowBase.__init__(self)
         self.output_dir = output_dir
+        self.movements = []
         self.setup_scene()
         self.camera.set_pos(0, 0, 0)
         self.camera.look_at(0, 1, 0)
@@ -25,13 +27,8 @@ class Panda3DRenderer(ShowBase):
         self.accept("e", self.rotate_camera, ["E"])
         self.taskMgr.add(self.update, "update")
 
-    def setup_scene(self):
-        self.scene = self.loader.load_model("3d-world-01.egg")
-        self.scene.reparent_to(self.render)
-        self.set_background_color(0, 0, 0, 1)
-        self.disableMouse()
-
     def move_camera(self, direction):
+        self.movements.append(direction)
         if direction == "A":
             self.camera.set_x(self.camera.get_x() - 0.1)
         elif direction == "D":
@@ -42,6 +39,7 @@ class Panda3DRenderer(ShowBase):
             self.camera.set_y(self.camera.get_y() - 0.1)
 
     def rotate_camera(self, direction):
+        self.movements.append(direction)
         if direction == "Q":
             self.camera.set_h(self.camera.get_h() + 5)
         elif direction == "E":
@@ -59,8 +57,14 @@ class Panda3DRenderer(ShowBase):
         image_pil.save(frame_path)
 
     def exit_program(self):
+        self.save_movements()
         self.userExit()
         exit()
+
+    def save_movements(self):
+        movements_path = os.path.join(self.output_dir, "movements.json")
+        with open(movements_path, "w") as f:
+            json.dump(self.movements, f)
 
 
 if __name__ == "__main__":
@@ -69,4 +73,3 @@ if __name__ == "__main__":
         os.makedirs(output_dir)
     app = Panda3DRenderer(output_dir)
     app.run()
-
