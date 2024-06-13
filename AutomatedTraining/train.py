@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 from PIL import Image
-import numpy as np
 import os
 from models import ImageEncoder, TextEncoder, TransformerDecoder, ImageDecoder
 from utils.camera_control import CameraControl
@@ -33,6 +32,7 @@ transform = transforms.Compose([
 # Models
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 image_encoder = ImageEncoder(output_dim=image_dim).to(device)
+image_projection = nn.Linear(image_dim, embed_dim).to(device)  # Projection layer
 text_encoder = TextEncoder(vocab_size=text_vocab_size, embed_dim=embed_dim, hidden_dim=hidden_dim, n_layers=n_layers, n_heads=n_heads).to(device)
 transformer_decoder = TransformerDecoder(embed_dim=embed_dim, n_heads=n_heads, hidden_dim=hidden_dim, n_layers=n_layers).to(device)
 image_decoder = ImageDecoder(input_dim=hidden_dim).to(device)
@@ -40,6 +40,7 @@ image_decoder = ImageDecoder(input_dim=hidden_dim).to(device)
 # Optimizer and Loss
 optimizer = optim.Adam(
     list(image_encoder.parameters()) + 
+    list(image_projection.parameters()) +  # Add projection layer parameters
     list(text_encoder.parameters()) + 
     list(transformer_decoder.parameters()) + 
     list(image_decoder.parameters()), 
@@ -62,6 +63,7 @@ def capture_and_process_image(renderer, frame_count):
     image = Image.open(frame_path).convert('RGB')
     return transform(image).unsqueeze(0).to(device), frame_path
 
+
 # Training Loop
 frame_count = 0
 current_image, current_image_path = capture_and_process_image(renderer, frame_count)
@@ -80,9 +82,16 @@ for epoch in range(num_epochs):
 
         # Forward pass
         image_features = image_encoder(current_image)
+        image_features = image_projection(image_features.unsqueeze(1))  # Project and add sequence dimension
         text_features = text_encoder(movement_tensor)
         combined_features = transformer_decoder(text_features, image_features)
+        
+        # Reshape combined_features before passing to image_decoder
+        combined_features = combined_features.view(combined_features.size(0), combined_features.size(2), 1, 1)
+        
         predicted_image = image_decoder(combined_features)
+        # Ensure predicted_image has shape [batch_size, 3, 224, 224]
+        predicted_image = nn.functional.interpolate(predicted_image, size=(224, 224), mode='bilinear', align_corners=False)
 
         # Compute loss
         loss = criterion(predicted_image, next_image)
@@ -97,7 +106,9 @@ for epoch in range(num_epochs):
 # Save model
 torch.save({
     'image_encoder': image_encoder.state_dict(),
+    'image_projection': image_projection.state_dict(),
     'text_encoder': text_encoder.state_dict(),
     'transformer_decoder': transformer_decoder.state_dict(),
     'image_decoder': image_decoder.state_dict()
 }, 'model.pth')
+

@@ -1,7 +1,5 @@
 # camera_control.py
-
 import random
-
 
 class CameraControl:
     def __init__(self, method="random"):
@@ -19,4 +17,7 @@ class CameraControl:
     def algorithmic_movement(self):
         # Stub for future algorithmic movement
         return self.random_movement()
-    
+
+    def command_to_index(self, command):
+        command_map = {'W': 0, 'A': 1, 'S': 2, 'D': 3, 'Q': 4, 'E': 5}
+        return command_map[command]

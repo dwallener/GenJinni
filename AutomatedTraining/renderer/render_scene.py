@@ -1,6 +1,6 @@
 # render_scene.py
 
-from panda3d.core import Point3, Texture, GraphicsOutput
+from panda3d.core import Point3, Texture, GraphicsOutput, PNMImage
 from panda3d.core import Point3, WindowProperties
 
 from direct.actor.Actor import Actor
@@ -19,7 +19,7 @@ class Panda3DRenderer(ShowBase):
 
         # Set window properties
         props = WindowProperties()
-        props.setSize(128, 128)
+        props.setSize(224, 224)
         self.win.requestProperties(props)
 
         # Disable the camera trackball controls.
@@ -109,14 +109,12 @@ class Panda3DRenderer(ShowBase):
         return Task.cont
 
     def capture_frame(self, frame_path):
-        image = self.win.get_screenshot()
-        image_data = np.array(image)
-        image_pil = Image.fromarray(image_data)
-        image_pil.save(frame_path)
+        self.win.saveScreenshot(frame_path)
 
     def exit_program(self):
         self.userExit()
         exit()
+
 
 if __name__ == "__main__":
     output_dir = "output_frames"
