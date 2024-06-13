@@ -96,17 +96,17 @@ class Panda3DRenderer(ShowBase):
 
     def move_camera(self, direction):
         if direction == "A":
-            self.camera.set_x(self.camera.get_x() - 0.1)
+            self.camera.set_x(self.camera.get_x() - 0.3)
         elif direction == "D":
-            self.camera.set_x(self.camera.get_x() + 0.1)
+            self.camera.set_x(self.camera.get_x() + 0.3)
         elif direction == "W":
-            self.camera.set_y(self.camera.get_y() + 0.1)
+            self.camera.set_y(self.camera.get_y() + 0.3)
         elif direction == "S":
-            self.camera.set_y(self.camera.get_y() - 0.1)
+            self.camera.set_y(self.camera.get_y() - 0.3)
         elif direction == "Q":
-            self.camera.set_h(self.camera.get_h() + 5)
+            self.camera.set_h(self.camera.get_h() + 15)
         elif direction == "E":
-            self.camera.set_h(self.camera.get_h() - 5)
+            self.camera.set_h(self.camera.get_h() - 15)
         
         self.advance_panda_animation()
 
