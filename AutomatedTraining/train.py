@@ -20,9 +20,9 @@ hidden_dim = 512
 n_heads = 8
 n_layers = 6
 learning_rate = 1e-4
-num_iterations = 100
+num_iterations = 1000
 batch_size = 32  # Batch size for training
-num_epochs_per_set = 5  # Number of epochs to iterate on each set of frames
+num_epochs_per_set = 3  # Number of epochs to iterate on each set of frames
 output_dir = "output_frames"
 movements_file = os.path.join(output_dir, "movements.json")
 
@@ -94,7 +94,7 @@ def training_task(task):
     if task.frame < num_iterations:
 
         # logging
-        print(f'Iteration {task.frame}/{num_iterations}')
+        print(f'Walk Around, Step {task.frame}/{num_iterations}')
 
         # Move the camera and capture a frame
         movement = camera_control.get_next_movement()
@@ -143,7 +143,7 @@ def training_task(task):
                     optimizer.step()
 
         if loss is not None:  # Check if loss is a tensor before calling .item()
-            print(f'Iteration [{task.frame+1}/{num_iterations}], Loss: {loss.item():.4f}')
+            print(f'3D Walk Step [{task.frame+1}/{num_iterations}], Loss: {loss.item():.4f}')
         task.frame += 1
 
         return task.cont
