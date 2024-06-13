@@ -3,9 +3,11 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import os
+import json
+
 from torchvision import transforms
 from PIL import Image
-import os
 from models import ImageEncoder, TextEncoder, TransformerDecoder, ImageDecoder
 from utils.camera_control import CameraControl
 from renderer.render_scene import Panda3DRenderer
@@ -21,6 +23,7 @@ batch_size = 32
 learning_rate = 1e-4
 num_epochs = 20
 output_dir = "output_frames"
+movements_file = os.path.join(output_dir, "movements.json")
 
 # Transform for images
 transform = transforms.Compose([
@@ -56,6 +59,12 @@ if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 renderer = Panda3DRenderer(output_dir)
 
+# Initialize movements file
+if not os.path.exists(movements_file):
+    with open(movements_file, 'w') as f:
+        json.dump([], f)
+
+
 # Function to capture and process image
 def capture_and_process_image(renderer, frame_count):
     frame_path = os.path.join(output_dir, f"{frame_count}.jpg")
@@ -63,6 +72,14 @@ def capture_and_process_image(renderer, frame_count):
     image = Image.open(frame_path).convert('RGB')
     return transform(image).unsqueeze(0).to(device), frame_path
 
+
+def log_movement(movement):
+    with open(movements_file, 'r+') as f:
+        movements = json.load(f)
+        movements.append(movement)
+        f.seek(0)
+        json.dump(movements, f)
+        f.truncate()
 
 # Training Loop
 frame_count = 0
@@ -73,6 +90,7 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         
         movement = camera_control.get_next_movement()
+        log_movement(movement)        
         renderer.move_camera(movement)
         frame_count += 1
         next_image, next_image_path = capture_and_process_image(renderer, frame_count)
