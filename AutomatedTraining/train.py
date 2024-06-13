@@ -11,6 +11,7 @@ from PIL import Image
 from models import ImageEncoder, TextEncoder, TransformerDecoder, ImageDecoder
 from utils.camera_control import CameraControl
 from renderer.render_scene import Panda3DRenderer
+from renderer.render_scene import run_renderer
 
 # Hyperparameters
 image_dim = 512
@@ -57,7 +58,8 @@ camera_control = CameraControl(method="random")  # Change to "algorithm" as need
 # Initialize Panda3D
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
-renderer = Panda3DRenderer(output_dir)
+#renderer = Panda3DRenderer(output_dir)
+run_renderer(output_dir)
 
 # Initialize movements file
 if not os.path.exists(movements_file):
