@@ -3,15 +3,14 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import os
-import json
-
 from torchvision import transforms
 from PIL import Image
+import os
+import json
 from models import ImageEncoder, TextEncoder, TransformerDecoder, ImageDecoder
 from utils.camera_control import CameraControl
-from renderer.render_scene import Panda3DRenderer
-from renderer.render_scene import run_renderer
+from renderer.render_scene import run_renderer_with_task, Panda3DRenderer  # Import necessary classes and functions
+
 
 # Hyperparameters
 image_dim = 512
@@ -20,9 +19,8 @@ embed_dim = 256
 hidden_dim = 512
 n_heads = 8
 n_layers = 6
-batch_size = 32
 learning_rate = 1e-4
-num_epochs = 20
+num_iterations = 1000
 output_dir = "output_frames"
 movements_file = os.path.join(output_dir, "movements.json")
 
@@ -58,13 +56,14 @@ camera_control = CameraControl(method="random")  # Change to "algorithm" as need
 # Initialize Panda3D
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
-#renderer = Panda3DRenderer(output_dir)
-run_renderer(output_dir)
 
-# Initialize movements file
+# Ensure `movements.json` exists
 if not os.path.exists(movements_file):
     with open(movements_file, 'w') as f:
         json.dump([], f)
+
+# Global variable for renderer
+renderer = None
 
 
 # Function to capture and process image
@@ -75,6 +74,7 @@ def capture_and_process_image(renderer, frame_count):
     return transform(image).unsqueeze(0).to(device), frame_path
 
 
+# Function to log movement
 def log_movement(movement):
     with open(movements_file, 'r+') as f:
         movements = json.load(f)
@@ -83,16 +83,23 @@ def log_movement(movement):
         json.dump(movements, f)
         f.truncate()
 
-# Training Loop
-frame_count = 0
-current_image, current_image_path = capture_and_process_image(renderer, frame_count)
 
-for epoch in range(num_epochs):
-    for _ in range(batch_size):
+frame_count = 0
+
+
+# Training Loop as a Panda3D task
+def training_task(task):
+    global frame_count, current_image, current_image_path, renderer
+
+    if task.frame == 0:
+        # Initialize current_image and current_image_path on the first iteration
+        current_image, current_image_path = capture_and_process_image(renderer, frame_count)
+
+    if task.frame < num_iterations:
         optimizer.zero_grad()
         
         movement = camera_control.get_next_movement()
-        log_movement(movement)        
+        log_movement(movement)
         renderer.move_camera(movement)
         frame_count += 1
         next_image, next_image_path = capture_and_process_image(renderer, frame_count)
@@ -110,6 +117,7 @@ for epoch in range(num_epochs):
         combined_features = combined_features.view(combined_features.size(0), combined_features.size(2), 1, 1)
         
         predicted_image = image_decoder(combined_features)
+
         # Ensure predicted_image has shape [batch_size, 3, 224, 224]
         predicted_image = nn.functional.interpolate(predicted_image, size=(224, 224), mode='bilinear', align_corners=False)
 
@@ -121,14 +129,24 @@ for epoch in range(num_epochs):
         # Update current image for next iteration
         current_image = next_image
 
-    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+        print(f'Iteration [{task.frame+1}/{num_iterations}], Loss: {loss.item():.4f}')
+        task.frame += 1
 
-# Save model
-torch.save({
-    'image_encoder': image_encoder.state_dict(),
-    'image_projection': image_projection.state_dict(),
-    'text_encoder': text_encoder.state_dict(),
-    'transformer_decoder': transformer_decoder.state_dict(),
-    'image_decoder': image_decoder.state_dict()
-}, 'model.pth')
+        return task.cont
+    else:
+        torch.save({
+            'image_encoder': image_encoder.state_dict(),
+            'image_projection': image_projection.state_dict(),
+            'text_encoder': text_encoder.state_dict(),
+            'transformer_decoder': transformer_decoder.state_dict(),
+            'image_decoder': image_decoder.state_dict()
+        }, 'model.pth')
+        return task.done
 
+
+# Initialize and run the renderer first
+renderer = Panda3DRenderer(output_dir)
+
+# Add the training task after the renderer is initialized
+renderer.taskMgr.add(training_task, "training_task")
+renderer.run()

@@ -1,11 +1,12 @@
 # render_scene.py
 
-from panda3d.core import Point3, Texture, GraphicsOutput, PNMImage, WindowProperties, DirectionalLight, AmbientLight
+from panda3d.core import Point3, WindowProperties, DirectionalLight, AmbientLight
 from direct.actor.Actor import Actor
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
 from direct.interval.IntervalGlobal import Sequence
 import os
+
 
 class Panda3DRenderer(ShowBase):
     def __init__(self, output_dir):
@@ -42,6 +43,7 @@ class Panda3DRenderer(ShowBase):
 
         # Loop its animation.
         self.pandaActor.loop("walk")
+        self.pandaActor.stop()  # Stop the animation initially
 
         # Create the four lerp intervals needed for the panda to walk back and forth.
         posInterval1 = self.pandaActor.posInterval(13, Point3(0, -10, 0), startPos=Point3(0, 10, 0))
@@ -52,6 +54,7 @@ class Panda3DRenderer(ShowBase):
         # Create and play the sequence that coordinates the intervals.
         self.pandaPace = Sequence(posInterval1, hprInterval1, posInterval2, hprInterval2, name="pandaPace")
         self.pandaPace.loop()
+        self.pandaPace.pause()  # Pause the sequence initially
 
         # Initialize camera position and rotation variables.
         self.angle_horizontal = 0
@@ -104,6 +107,14 @@ class Panda3DRenderer(ShowBase):
             self.camera.set_h(self.camera.get_h() + 5)
         elif direction == "E":
             self.camera.set_h(self.camera.get_h() - 5)
+        
+        self.advance_panda_animation()
+
+    def advance_panda_animation(self):
+        # Manually advance the panda animation by one frame
+        current_frame = self.pandaActor.getCurrentFrame('walk')
+        next_frame = (current_frame + 1) % self.pandaActor.getNumFrames('walk')
+        self.pandaActor.pose('walk', next_frame)
 
     def update(self, task):
         return Task.cont
@@ -115,13 +126,23 @@ class Panda3DRenderer(ShowBase):
         self.userExit()
         exit()
 
+
 def run_renderer(output_dir):
     app = Panda3DRenderer(output_dir)
+    # app.run()
+    return app
+
+
+def run_renderer_with_task(output_dir, task_func):
+    app = Panda3DRenderer(output_dir)
+    app.taskMgr.add(task_func, "training_task")
     app.run()
+    return app
+
 
 if __name__ == "__main__":
     output_dir = "output_frames"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     run_renderer(output_dir)
-    
+
