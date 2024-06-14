@@ -163,4 +163,4 @@ cython_debug/
 artwork/*training*
 pix2pixHD/checkpoints
 pix2pixHD/datasets
-
+panda3d/frame_caps/*
