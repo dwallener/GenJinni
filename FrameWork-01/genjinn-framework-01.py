@@ -1,4 +1,5 @@
 # top level
+
 import os
 from nicegui import ui, events
 
@@ -28,19 +29,22 @@ def create_home_page():
         ui.image('artwork/genjinn-large.png').style('height: 100px; width: auto;')
 
 def create_content_generation_tab():
-    ui.label('Upload Tileset (up to 16 tiles)').style('font-weight: bold')
-    for i in range(16):
-        ui.upload(on_upload=lambda e, idx=i: handle_upload(e, 'tileset', idx),
-                  on_rejected=lambda e: ui.notify(f'Upload failed: {e.name}'),
-                  label=f'Tile {i+1}').classes('max-w-full').props('accept=.png')
+    ui.label('Upload the tileset (up to 16 tiles)').style('font-weight: bold; color: blue')
+    with ui.grid(columns=4):
+        for i in range(16):
+            ui.upload(on_upload=lambda e, idx=i: handle_upload(e, 'tileset', idx),
+                      on_rejected=lambda e: ui.notify(f'Upload failed: {e.name}'),
+                      label=f'Tile {i+1}').classes('max-w-full').props('accept=.png')
 
-    ui.label('Upload Legality Samples (up to 8 samples)').style('font-weight: bold')
-    for i in range(8):
-        ui.upload(on_upload=lambda e, idx=i: handle_upload(e, 'legality', idx),
-                  on_rejected=lambda e: ui.notify(f'Upload failed: {e.name}'),
-                  label=f'Legality Sample {i+1}').classes('max-w-full').props('accept=.png')
+    ui.label('Upload Samples showing legal connectivity (up to 8 samples)').style('font-weight: bold; color: blue')
+    with ui.grid(columns=2):
+        for i in range(8):
+            ui.upload(on_upload=lambda e, idx=i: handle_upload(e, 'legality', idx),
+                      on_rejected=lambda e: ui.notify(f'Upload failed: {e.name}'),
+                      label=f'Legality Sample {i+1}').classes('max-w-full').props('accept=.png')
 
-    ui.button('Submit', on_click=lambda: ui.notify('Files submitted for processing')).style('margin-top: 20px')
+    save_path = ui.input(label='Save to:', placeholder='Enter path to save inferred rules').style('margin-top: 20px')
+    ui.button('Infer placement rules', color='green', on_click=lambda: ui.notify(f'Saving to {save_path.value}')).style('font-size: 24px; margin-top: 20px')
 
 def create_game_mechanics_tab():
     ui.label('Game Mechanics')

@@ -43,9 +43,25 @@ def create_content_generation_tab(handle_upload):
                     num_levels = ui.number(label='Number of levels to generate:').style('margin-top: 20px')
                     levels_save_path = ui.input(label='Save generated levels to:', placeholder='Enter path').style('margin-top: 20px')
                     ui.button('Generate Levels', color='green', on_click=lambda: ui.notify(f'Generating {num_levels.value} levels to {levels_save_path.value}')).style('font-size: 24px; margin-top: 20px')
-        
+
         with ui.tab_panel('Enemy Design'):
-            ui.label('Enemy Design features go here.')
+            for character_idx in range(1, 4):
+                ui.label(f'Define Character {character_idx}').style('font-weight: bold; color: blue')
+                ui.input(label='Character name').style('margin-top: 20px')
+                
+                ui.label('Character Images').style('margin-top: 20px; font-weight: bold; color: blue')
+                with ui.grid(columns=4):
+                    for img_idx in range(4):
+                        ui.upload(on_upload=lambda e, idx=img_idx: handle_upload(e, f'character{character_idx}', idx),
+                                  on_rejected=lambda e: ui.notify(f'Upload failed: {e.name}'),
+                                  label=f'Image {img_idx + 1}').classes('max-w-full').props('accept=.png')
+                
+                ui.label('Animation Keyframes').style('margin-top: 20px; font-weight: bold; color: blue')
+                with ui.grid(columns=4):
+                    for keyframe_idx in range(4):
+                        ui.upload(on_upload=lambda e, idx=keyframe_idx: handle_upload(e, f'keyframe{character_idx}', idx),
+                                  on_rejected=lambda e: ui.notify(f'Upload failed: {e.name}'),
+                                  label=f'Keyframe {keyframe_idx + 1}').classes('max-w-full').props('accept=.png')
 
         with ui.tab_panel('Item and Upgrade Generation'):
             ui.label('Item and Upgrade Generation features go here.')
