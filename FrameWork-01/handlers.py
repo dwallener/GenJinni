@@ -15,4 +15,3 @@ def handle_upload(e: events.UploadEventArguments, section, idx):
         file.write(b)
 
     ui.notify(f'File saved to {os.path.join(outdir, filename)}')
-
