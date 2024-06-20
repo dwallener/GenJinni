@@ -164,3 +164,8 @@ artwork/*training*
 pix2pixHD/checkpoints
 pix2pixHD/datasets
 panda3d/frame_caps/*
+.DS_Store
+*/.DS_Store
+*/*.DS_Store
+*/*/*.DS_Store
+
