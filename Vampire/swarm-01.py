@@ -149,8 +149,8 @@ class PixelObject:
             self.B = (self.B & 0xF0) | speed
         else:
             raise ValueError("Speed must be within the range 0-15")
-    
-    def update_position(self):
+
+    def update_position(self, all_objects):
         """Update the position based on the current speed and direction, respecting the safety buffer."""
         if not hasattr(self, 'vibrating'):
             self.vibrating = False
@@ -169,6 +169,17 @@ class PixelObject:
 
         # Check safety buffer
         new_distance_to_destination = math.sqrt((self.destination[0] - new_R) ** 2 + (self.destination[1] - new_G) ** 2)
+
+        # Convert self.R and self.G to int for the neighbor count calculation
+        int_R = int(self.R)
+        int_G = int(self.G)
+
+        # Count other PixelObjects in the 3x3 area centered on this PixelObject
+        neighbor_count = sum(1 for obj in all_objects if obj is not self and abs(int(obj.R) - int_R) <= 1 and abs(int(obj.G) - int_G) <= 1)
+
+        # Decrease the safety buffer if there are more than 5 neighbors
+        if neighbor_count > 5:
+            self.safety_buffer = max(0, self.safety_buffer - 1)
 
         if new_distance_to_destination < self.safety_buffer:
             self.vibrating = True
@@ -216,7 +227,7 @@ while running:
 
             # Update positions of existing PixelObjects
             for obj in pixel_objects:
-                obj.update_position()
+                obj.update_position(pixel_objects)
 
             # Clear the screen
             screen.fill((0, 0, 0))
