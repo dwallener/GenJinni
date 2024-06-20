@@ -152,6 +152,11 @@ class PixelObject:
     
     def update_position(self):
         """Update the position based on the current speed and direction, respecting the safety buffer."""
+        if not hasattr(self, 'vibrating'):
+            self.vibrating = False
+            self.original_position = (self.R, self.G)
+
+        # Calculate the direction towards the destination
         self.set_direction_towards_destination()
         direction_angle = self.DIRECTION_ANGLES[self.get_direction()]
         speed = self.get_speed()
@@ -163,12 +168,29 @@ class PixelObject:
         new_G = np.clip(self.G + delta_y, 0, 127)
 
         # Check safety buffer
-        distance_to_destination = math.sqrt((self.destination[0] - new_R)**2 + (self.destination[1] - new_G)**2)
-        if distance_to_destination < self.safety_buffer:
-            print("Reached the safety buffer limit.")
+        new_distance_to_destination = math.sqrt((self.destination[0] - new_R) ** 2 + (self.destination[1] - new_G) ** 2)
+
+        if new_distance_to_destination < self.safety_buffer:
+            self.vibrating = True
+
+        if self.vibrating:
+            if (self.R, self.G) == self.original_position:
+                # Move 1 pixel in a random direction
+                random_direction = random.choice([Direction.N, Direction.NE, Direction.E, Direction.SE, Direction.S, Direction.SW, Direction.W, Direction.NW])
+                direction_angle = self.DIRECTION_ANGLES[random_direction]
+                delta_x = int(round(math.cos(math.radians(direction_angle))))
+                delta_y = int(round(math.sin(math.radians(direction_angle))))
+                new_R = np.clip(self.R + delta_x, 0, 127)
+                new_G = np.clip(self.G + delta_y, 0, 127)
+                self.R, self.G = new_R, new_G
+            else:
+                # Return to the original stopping point
+                self.R, self.G = self.original_position
         else:
             self.R = np.uint8(new_R)
-            self.G = np.uint8(new_G)  
+            self.G = np.uint8(new_G)
+            if new_distance_to_destination >= self.safety_buffer:
+                self.original_position = (self.R, self.G)  # Update the original position when moving normally
 
     def __repr__(self):
         return f"PixelObject(R={self.R}, G={self.G}, B={self.B}, Direction={self.get_direction().name}, Speed={self.get_speed()}, Destination={self.destination}, SafetyBuffer={self.safety_buffer})"
